@@ -27,7 +27,7 @@
 
 Process Manager is a simple table view of the running system processes, much like Windows Task Manager or GNOME
 System Monitor. Clicking on a process will display a control panel where you can stop the process or copy its
-information. GNU/Linux is the target OS, but Process Manager may be functional on other systems.
+information.
 
 ## Attributions
 
