@@ -13,7 +13,7 @@
 </div>
 
 <h3 align="center">
-  No more zombies
+  No hang survives
 </h3>
 
 <p align="center">
