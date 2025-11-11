@@ -1,5 +1,3 @@
-#![warn(clippy::all, rust_2018_idioms)]
-
 use crate::processes;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -33,7 +31,7 @@ impl Default for App {
 impl App {
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        let app: App = if let Some(storage) = cc.storage {
+        let app: Self = if let Some(storage) = cc.storage {
             eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default()
         } else {
             Default::default()
@@ -41,17 +39,7 @@ impl App {
 
         let system = app.system.clone();
         let ctx = cc.egui_ctx.clone();
-
-        thread::spawn(move || {
-            loop {
-                thread::sleep(Duration::from_secs_f32(SYSTEM_REFRESH_INTERVAL_SECONDS));
-                system
-                    .lock()
-                    .unwrap()
-                    .refresh_processes(sysinfo::ProcessesToUpdate::All, true);
-                ctx.request_repaint();
-            }
-        });
+        thread::spawn(move || system_refresh_loop(&system, &ctx));
 
         app
     }
@@ -66,5 +54,16 @@ impl eframe::App for App {
     /// Called by the framework to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, eframe::APP_KEY, self);
+    }
+}
+
+fn system_refresh_loop(system: &Arc<Mutex<sysinfo::System>>, ctx: &egui::Context) -> ! {
+    loop {
+        thread::sleep(Duration::from_secs_f32(SYSTEM_REFRESH_INTERVAL_SECONDS));
+        system
+            .lock()
+            .expect("Failed to acquire system lock")
+            .refresh_processes(sysinfo::ProcessesToUpdate::All, true);
+        ctx.request_repaint();
     }
 }
