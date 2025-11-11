@@ -1,5 +1,5 @@
 <p align="center">
- <a href="https://CaymanFreeman.github.io/ProcessManager"><img src="assets/icon.png" width="256" height="256" alt="ProcessManager Logo"></a>
+ <img src="assets/icon.png" width="256" height="256" alt="ProcessManager Logo">
 </p>
 
 <div id="toc" align="center">
