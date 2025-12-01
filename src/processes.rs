@@ -83,113 +83,114 @@ fn update_processes_table(app: &mut app::App, ui: &mut egui::Ui) {
 
 fn table_body(app: &mut app::App, users: &sysinfo::Users) -> impl FnOnce(TableBody<'_>) {
     move |mut body| {
-        let system = app.system.lock().expect("Failed to acquire system lock");
-        let mut processes: Vec<&sysinfo::Process> = system.processes().values().collect();
-        if !app.process_filter.is_empty() {
-            processes.retain(|process| {
-                process
-                    .name()
-                    .to_str()
-                    .map(|name| {
-                        name.to_lowercase()
-                            .contains(&app.process_filter.to_lowercase())
-                    })
-                    .unwrap_or(false)
+        if let Ok(system) = app.system.lock() {
+            let mut processes: Vec<&sysinfo::Process> = system.processes().values().collect();
+            if !app.process_filter.is_empty() {
+                processes.retain(|process| {
+                    process
+                        .name()
+                        .to_str()
+                        .map(|name| {
+                            name.to_lowercase()
+                                .contains(&app.process_filter.to_lowercase())
+                        })
+                        .unwrap_or(false)
+                });
+            }
+
+            if !app.show_thread_processes {
+                processes.retain(|process| process.thread_kind().is_none());
+            }
+
+            processes.sort_by(|a, b| {
+                b.cpu_usage()
+                    .partial_cmp(&a.cpu_usage())
+                    .unwrap_or(Ordering::Equal)
             });
-        }
 
-        if !app.show_thread_processes {
-            processes.retain(|process| process.thread_kind().is_none());
-        }
+            for process in processes {
+                body.row(ROW_HEIGHT, |mut row| {
+                    row.set_selected(app.selected_pid == Some(process.pid()));
 
-        processes.sort_by(|a, b| {
-            b.cpu_usage()
-                .partial_cmp(&a.cpu_usage())
-                .unwrap_or(Ordering::Equal)
-        });
+                    // Name
+                    row.col(|ui| {
+                        ui.style_mut().interaction.selectable_labels = false;
+                        ui.add(egui::Label::new(extract_process_name(process, true)).truncate());
+                    });
 
-        for process in processes {
-            body.row(ROW_HEIGHT, |mut row| {
-                row.set_selected(app.selected_pid == Some(process.pid()));
+                    // ID
+                    row.col(|ui| {
+                        ui.style_mut().interaction.selectable_labels = false;
+                        ui.add(egui::Label::new(process.pid().to_string()).truncate());
+                    });
 
-                // Name
-                row.col(|ui| {
-                    ui.style_mut().interaction.selectable_labels = false;
-                    ui.add(egui::Label::new(extract_process_name(process, true)).truncate());
-                });
+                    // User
+                    row.col(|ui| {
+                        ui.style_mut().interaction.selectable_labels = false;
+                        ui.add(egui::Label::new(get_user_name(process, users, true)).truncate());
+                    });
 
-                // ID
-                row.col(|ui| {
-                    ui.style_mut().interaction.selectable_labels = false;
-                    ui.add(egui::Label::new(process.pid().to_string()).truncate());
-                });
+                    // Memory
+                    row.col(|ui| {
+                        ui.style_mut().interaction.selectable_labels = false;
+                        ui.add(
+                            egui::Label::new(bytesize::ByteSize(process.memory()).to_string())
+                                .truncate(),
+                        );
+                    });
 
-                // User
-                row.col(|ui| {
-                    ui.style_mut().interaction.selectable_labels = false;
-                    ui.add(egui::Label::new(get_user_name(process, users, true)).truncate());
-                });
-
-                // Memory
-                row.col(|ui| {
-                    ui.style_mut().interaction.selectable_labels = false;
-                    ui.add(
-                        egui::Label::new(bytesize::ByteSize(process.memory()).to_string())
+                    // CPU
+                    row.col(|ui| {
+                        ui.style_mut().interaction.selectable_labels = false;
+                        ui.add(
+                            egui::Label::new(format!(
+                                "{:.2}%",
+                                process.cpu_usage() / system.cpus().len() as f32
+                            ))
                             .truncate(),
-                    );
-                });
+                        );
+                    });
 
-                // CPU
-                row.col(|ui| {
-                    ui.style_mut().interaction.selectable_labels = false;
-                    ui.add(
-                        egui::Label::new(format!(
-                            "{:.2}%",
-                            process.cpu_usage() / system.cpus().len() as f32
-                        ))
-                        .truncate(),
-                    );
-                });
+                    // Disk Read
+                    row.col(|ui| {
+                        ui.style_mut().interaction.selectable_labels = false;
+                        ui.add(
+                            egui::Label::new(
+                                bytesize::ByteSize(process.disk_usage().read_bytes).to_string(),
+                            )
+                            .truncate(),
+                        );
+                    });
 
-                // Disk Read
-                row.col(|ui| {
-                    ui.style_mut().interaction.selectable_labels = false;
-                    ui.add(
-                        egui::Label::new(
-                            bytesize::ByteSize(process.disk_usage().read_bytes).to_string(),
-                        )
-                        .truncate(),
-                    );
-                });
+                    // Disk Write
+                    row.col(|ui| {
+                        ui.style_mut().interaction.selectable_labels = false;
+                        ui.add(
+                            egui::Label::new(
+                                bytesize::ByteSize(process.disk_usage().written_bytes).to_string(),
+                            )
+                            .truncate(),
+                        );
+                    });
 
-                // Disk Write
-                row.col(|ui| {
-                    ui.style_mut().interaction.selectable_labels = false;
-                    ui.add(
-                        egui::Label::new(
-                            bytesize::ByteSize(process.disk_usage().written_bytes).to_string(),
-                        )
-                        .truncate(),
-                    );
-                });
+                    // Path
+                    row.col(|ui| {
+                        ui.style_mut().interaction.selectable_labels = false;
+                        ui.add(egui::Label::new(extract_process_path(process, true)).truncate());
+                    });
 
-                // Path
-                row.col(|ui| {
-                    ui.style_mut().interaction.selectable_labels = false;
-                    ui.add(egui::Label::new(extract_process_path(process, true)).truncate());
-                });
+                    // Status
+                    row.col(|ui| {
+                        ui.style_mut().interaction.selectable_labels = false;
+                        ui.add(egui::Label::new(process.status().to_string()).truncate());
+                    });
 
-                // Status
-                row.col(|ui| {
-                    ui.style_mut().interaction.selectable_labels = false;
-                    ui.add(egui::Label::new(process.status().to_string()).truncate());
+                    let response = row.response();
+                    if response.hovered() && response.ctx.input(|i| i.pointer.primary_clicked()) {
+                        app.selected_pid = Some(process.pid());
+                    }
                 });
-
-                let response = row.response();
-                if response.hovered() && response.ctx.input(|i| i.pointer.primary_clicked()) {
-                    app.selected_pid = Some(process.pid());
-                }
-            });
+            }
         }
     }
 }

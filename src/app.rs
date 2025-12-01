@@ -57,10 +57,9 @@ impl eframe::App for App {
 fn system_refresh_loop(system: &Arc<Mutex<sysinfo::System>>, ctx: &egui::Context) -> ! {
     loop {
         thread::sleep(Duration::from_secs_f32(SYSTEM_REFRESH_INTERVAL_SECONDS));
-        system
-            .lock()
-            .expect("Failed to acquire system lock")
-            .refresh_processes(sysinfo::ProcessesToUpdate::All, true);
+        if let Ok(mut system) = system.lock() {
+            system.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
+        }
         ctx.request_repaint();
     }
 }
