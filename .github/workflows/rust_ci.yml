@@ -78,19 +78,14 @@ jobs:
         include:
           - os: macos-latest
             TARGET: aarch64-apple-darwin
-
           - os: macos-latest
             TARGET: x86_64-apple-darwin
-
           - os: ubuntu-latest
             TARGET: arm-unknown-linux-musleabihf
-
           - os: ubuntu-latest
             TARGET: armv7-unknown-linux-musleabihf
-
           - os: ubuntu-latest
             TARGET: x86_64-unknown-linux-musl
-
           - os: windows-latest
             TARGET: x86_64-pc-windows-msvc
             EXTENSION: .exe
@@ -98,14 +93,12 @@ jobs:
     steps:
       - name: Building ${{ matrix.TARGET }}
         run: echo "${{ matrix.TARGET }}"
-
       - uses: actions/checkout@master
       - uses: actions-rs/toolchain@v1.0.1
         with:
           toolchain: stable
           target: ${{ matrix.TARGET }}
           override: true
-
       - uses: actions-rs/cargo@v1
         with:
           use-cross: true
