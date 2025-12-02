@@ -1,0 +1,84 @@
+on: workflow_dispatch
+
+name: CD
+
+env:
+  RUSTFLAGS: -D warnings
+  RUSTDOCFLAGS: -D warnings
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            TARGET: aarch64-apple-darwin
+            ARCHIVE: zip
+          - os: macos-latest
+            TARGET: x86_64-apple-darwin
+            ARCHIVE: zip
+          - os: ubuntu-latest
+            TARGET: arm-unknown-linux-musleabihf
+            ARCHIVE: tar.gz tar.xz tar.zst
+          - os: ubuntu-latest
+            TARGET: armv7-unknown-linux-musleabihf
+            ARCHIVE: tar.gz tar.xz tar.zst
+          - os: ubuntu-latest
+            TARGET: x86_64-unknown-linux-musl
+            ARCHIVE: tar.gz tar.xz tar.zst
+          - os: windows-latest
+            TARGET: x86_64-pc-windows-msvc
+            EXTENSION: .exe
+            ARCHIVE: zip
+
+    steps:
+      - name: Building ${{ matrix.TARGET }}
+        run: echo "${{ matrix.TARGET }}"
+
+      - uses: actions/checkout@v4
+
+      - name: Extract Name
+        id: crate
+        run: |
+          NAME=$(grep '^name = ' Cargo.toml | head -1 | sed 's/name = "\(.*\)"/\1/')
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.TARGET }}
+
+      - uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          bin: ${{ steps.crate.outputs.name }}
+          target: ${{ matrix.TARGET }}
+          archive: $bin-$tag-$target
+          tar: ${{ matrix.ARCHIVE }}
+          zip: ${{ matrix.ARCHIVE }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  create-release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract Version
+        id: version
+        run: |
+          VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }}
+          draft: true
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
