@@ -10,11 +10,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Extract Version
+        id: version
+        run: |
+          VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
       - uses: taiki-e/create-gh-release-action@v1
         with:
           title: Release v$version
           draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GITHUB_REF: refs/tags/v${{ steps.version.outputs.version }}
 
   upload-assets:
     needs: create-release
