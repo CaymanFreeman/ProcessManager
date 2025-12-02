@@ -1,17 +1,10 @@
 on:
   push:
     paths:
-      - '**.rs'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - '.github/workflows/rust_ci.yml'
+      - 'src/**'
   pull_request:
     paths:
-      - '**.rs'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - '.github/workflows/rust_ci.yml'
-  workflow_dispatch:
+      - 'src/**'
 
 name: CI
 
