@@ -51,4 +51,5 @@ jobs:
           tar: unix
           zip: windows
           include: LICENSE-APACHE.md,LICENSE-MIT.md
+          ref: refs/tags/v${{ steps.version.outputs.version }}
           token: ${{ secrets.GITHUB_TOKEN }}
