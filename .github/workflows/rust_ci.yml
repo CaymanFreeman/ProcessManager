@@ -76,31 +76,28 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-latest
-            TARGET: aarch64-apple-darwin
-          - os: macos-latest
-            TARGET: x86_64-apple-darwin
-          - os: ubuntu-latest
-            TARGET: arm-unknown-linux-musleabihf
-          - os: ubuntu-latest
-            TARGET: armv7-unknown-linux-musleabihf
-          - os: ubuntu-latest
-            TARGET: x86_64-unknown-linux-musl
-          - os: windows-latest
-            TARGET: x86_64-pc-windows-msvc
-            EXTENSION: .exe
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
 
     steps:
-      - name: Building ${{ matrix.TARGET }}
-        run: echo "${{ matrix.TARGET }}"
-      - uses: actions/checkout@master
+      - name: Building ${{ matrix.target }}
+        run: echo "${{ matrix.target }}"
+      - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1.0.1
         with:
           toolchain: stable
-          target: ${{ matrix.TARGET }}
+          target: ${{ matrix.target }}
           override: true
       - uses: actions-rs/cargo@v1
         with:
           use-cross: true
           command: build
-          args: --verbose --release --target=${{ matrix.TARGET }}
+          args: --verbose --release --target=${{ matrix.target }}
