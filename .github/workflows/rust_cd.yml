@@ -6,89 +6,100 @@ permissions:
   contents: write
 
 jobs:
-  create-release:
+  release:
     name: Create Release
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.version.outputs.version }}
-      bin-name: ${{ steps.bin-name.outputs.bin-name }}
+      crate-name: ${{ steps.crate-info.outputs.package_name }}
+      crate-version: ${{ steps.crate-info.outputs.package_version }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Extract Version
-        id: version
-        run: |
-          VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-      - name: Extract Binary Name
-        id: bin-name
-        run: |
-          BIN_NAME=$(grep '^name = ' Cargo.toml | head -1 | sed 's/name = "\(.*\)"/\1/')
-          echo "bin-name=$BIN_NAME" >> $GITHUB_OUTPUT
-      - uses: taiki-e/create-gh-release-action@v1
-        with:
-          title: Release v$version
-          draft: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          ref: refs/tags/v${{ steps.version.outputs.version }}
+      - name: Checkout
+        uses: actions/checkout@v6
 
-  upload-archives:
-    name: Build & Upload Archives
-    needs: create-release
+      - name: Get Crate Info
+        id: crate-info
+        uses: nicolaiunrein/cargo-get@master
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          name: Release v${{ steps.crate-info.outputs.package_version }}
+          tag_name: v${{ steps.crate-info.outputs.package_version }}
+
+  assets:
+    name: Build & Upload Release Assets
+    needs: release
     strategy:
       matrix:
         include:
-          - target: universal-apple-darwin
-            os: macos-latest
           - target: aarch64-apple-darwin
             os: macos-latest
+            archive: tar.gz
           - target: x86_64-apple-darwin
             os: macos-latest
+            archive: tar.gz
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-latest
+            archive: tar.gz
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
+            archive: tar.gz
           - target: x86_64-pc-windows-msvc
             os: windows-latest
+            archive: zip
     runs-on: ${{ matrix.os }}
     steps:
       - name: Building ${{ matrix.target }}
         run: echo "${{ matrix.target }}"
-      - uses: actions/checkout@v4
-      - uses: taiki-e/upload-rust-binary-action@v1
-        with:
-          bin: ${{ needs.create-release.outputs.bin-name }}
-          target: ${{ matrix.target }}
-          tar: unix
-          zip: windows
-          include: LICENSE-APACHE.md,LICENSE-MIT.md
-          ref: refs/tags/v${{ needs.create-release.outputs.version }}
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-  upload-deb:
-    name: Build & Upload Debian Package
-    needs: create-release
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        target: [ x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu ]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1.0.1
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
           target: ${{ matrix.target }}
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: cargo-deb
-      - uses: actions-rs/cargo@v1
-        with:
-          command: deb
-          args: --target=${{ matrix.target }}
-      - name: Upload Debian Package
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build
         run: |
-          DEB_FILE=$(find target/${{ matrix.target }}/debian -name "*.deb")
-          gh release upload v${{ needs.create-release.outputs.version }} "$DEB_FILE"
+          cargo build --locked --verbose --release --target=${{ matrix.target }}
+
+      - name: Create Unix Archives
+        if: !startsWith(matrix.os, 'windows')
+        run: |
+          mkdir -p dist
+          tar -czf dist/${{ needs.release.outputs.crate-name }}-${{ needs.release.outputs.crate-version }}-${{ matrix.target }}.${{ matrix.archive }} \
+          -C target/${{ matrix.target }}/release ${{ needs.release.outputs.crate-name }}
+
+      - name: Create Windows Archive
+        if: startsWith(matrix.os, 'windows')
+        run: |
+          New-Item -Name "dist" -ItemType Directory
+          Compress-Archive `
+            -Path target\${{ matrix.target }}\release\${{ needs.release.outputs.crate-name }}.exe `
+            -DestinationPath dist\${{ needs.release.outputs.crate-name }}-${{ needs.release.outputs.crate-version }}-${{ matrix.target }}.${{ matrix.archive }}
+
+      - name: Upload Archives
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.release.outputs.crate-version }}
+          files: dist/${{ needs.release.outputs.crate-name }}-${{ needs.release.outputs.crate-version }}-${{ matrix.target }}.${{ matrix.archive }}
+
+      - name: Install Cargo Deb
+        if: contains(matrix.target, 'linux')
+        run: |
+          cargo install cargo-deb
+
+      - name: Build Debian Package
+        if: contains(matrix.target, 'linux')
+        run: |
+          cargo deb --output dist/${{ needs.release.outputs.crate-name }}-${{ needs.release.outputs.crate-version }}-${{ matrix.target }}.deb
+
+      - name: Upload Debian Package
+        if: contains(matrix.target, 'linux')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.release.outputs.crate-version }}
+          files: dist/${{ needs.release.outputs.crate-name }}-${{ needs.release.outputs.crate-version }}-${{ matrix.target }}.deb
