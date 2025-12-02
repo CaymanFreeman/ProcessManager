@@ -63,3 +63,32 @@ jobs:
           include: LICENSE-APACHE.md,LICENSE-MIT.md
           ref: refs/tags/v${{ needs.create-release.outputs.version }}
           token: ${{ secrets.GITHUB_TOKEN }}
+
+  upload-deb:
+    name: Build & Upload Debian Package
+    needs: create-release
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [ x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1.0.1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: cargo-deb
+      - uses: actions-rs/cargo@v1
+        with:
+          command: deb
+          args: --target=${{ matrix.target }}
+      - name: Upload Debian Package
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DEB_FILE=$(find target/${{ matrix.target }}/debian -name "*.deb")
+          gh release upload v${{ needs.create-release.outputs.version }} "$DEB_FILE"
