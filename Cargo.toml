@@ -6,7 +6,7 @@ edition = "2024"
 rust-version = "1.88"
 repository = "https://github.com/CaymanFreeman/ProcessManager"
 license = "MIT OR Apache-2.0"
-include = ["LICENSE-APACHE", "LICENSE-MIT", "**/*.rs", "Cargo.toml"]
+include = ["LICENSE-APACHE.md", "LICENSE-MIT.md", "**/*.rs", "Cargo.toml"]
 
 [package.metadata.docs.rs]
 all-features = true
