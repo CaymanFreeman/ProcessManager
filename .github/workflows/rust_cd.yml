@@ -7,6 +7,7 @@ permissions:
 
 jobs:
   create-release:
+    name: Create Release
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -30,7 +31,8 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: refs/tags/v${{ steps.version.outputs.version }}
 
-  upload-assets:
+  upload-archives:
+    name: Build & Upload Archives
     needs: create-release
     strategy:
       matrix:
@@ -49,6 +51,8 @@ jobs:
             os: windows-latest
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Building ${{ matrix.target }}
+        run: echo "${{ matrix.target }}"
       - uses: actions/checkout@v4
       - uses: taiki-e/upload-rust-binary-action@v1
         with:
