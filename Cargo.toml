@@ -4,12 +4,24 @@ version = "0.1.0"
 authors = ["Cayman Freeman"]
 edition = "2024"
 rust-version = "1.88"
+description = "A simple table view of the running system processes"
 repository = "https://github.com/CaymanFreeman/ProcessManager"
 license = "MIT OR Apache-2.0"
 include = ["LICENSE-APACHE.md", "LICENSE-MIT.md", "**/*.rs", "Cargo.toml"]
 
 [package.metadata.docs.rs]
 all-features = true
+
+[package.metadata.deb]
+extended-description = "A simple table view of the running system processes"
+depends = "$auto"
+section = "utility"
+priority = "optional"
+assets = [
+    ["target/release/process_manager", "usr/bin/", "755"],
+    ["assets/icon.png", "usr/share/icons/hicolor/512x512/apps/process_manager.png", "644"],
+    ["assets/process_manager.desktop", "usr/share/applications/", "644"],
+]
 
 [dependencies]
 egui = "0.33.0"
