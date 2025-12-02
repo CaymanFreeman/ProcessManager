@@ -50,9 +50,6 @@ jobs:
             archive: zip
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Building ${{ matrix.target }}
-        run: echo "${{ matrix.target }}"
-
       - name: Checkout
         uses: actions/checkout@v6
 
@@ -63,8 +60,7 @@ jobs:
           target: ${{ matrix.target }}
 
       - name: Build
-        run: |
-          cargo build --locked --verbose --release --target=${{ matrix.target }}
+        run: cargo build --locked --verbose --release --target=${{ matrix.target }}
 
       - name: Create Unix Archives
         if: !startsWith(matrix.os, 'windows')
@@ -89,13 +85,11 @@ jobs:
 
       - name: Install Cargo Deb
         if: contains(matrix.target, 'linux')
-        run: |
-          cargo install cargo-deb
+        run: cargo install cargo-deb
 
       - name: Build Debian Package
         if: contains(matrix.target, 'linux')
-        run: |
-          cargo deb --output dist/${{ needs.release.outputs.crate-name }}-${{ needs.release.outputs.crate-version }}-${{ matrix.target }}.deb
+        run: cargo deb --output dist/${{ needs.release.outputs.crate-name }}-${{ needs.release.outputs.crate-version }}-${{ matrix.target }}.deb
 
       - name: Upload Debian Package
         if: contains(matrix.target, 'linux')
