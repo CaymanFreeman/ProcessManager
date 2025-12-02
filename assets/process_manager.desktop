@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Process Manager
+Exec=process_manager
+Comment=A simple table view of the running system processes
+Icon=process_manager
+Categories=Utility;System;
+Terminal=false
+Keywords=process;manager;process_manager;
+StartupNotify=true
