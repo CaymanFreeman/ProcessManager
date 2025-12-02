@@ -6,6 +6,7 @@ fn main() -> eframe::Result {
             .with_clamp_size_to_monitor_size(true)
             .with_inner_size([1280.0, 720.0])
             .with_min_inner_size([475.0, 350.0])
+            .with_app_id("process_manager")
             .with_icon(
                 eframe::icon_data::from_png_bytes(&include_bytes!("../assets/icon.png")[..])
                     .expect("Failed to load icon"),
