@@ -1,0 +1,48 @@
+on: workflow_dispatch
+
+name: CD
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: taiki-e/create-gh-release-action@v1
+        with:
+          title: Release v$version
+          draft: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  upload-assets:
+    needs: create-release
+    strategy:
+      matrix:
+        include:
+          - target: universal-apple-darwin
+            os: macos-latest
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: arm-unknown-linux-musleabihf
+            os: ubuntu-latest
+          - target: armv7-unknown-linux-musleabihf
+            os: ubuntu-latest
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          bin: ...
+          target: ${{ matrix.target }}
+          tar: unix
+          zip: windows
+          include: LICENSE-APACHE.md,LICENSE-MIT.md
+          token: ${{ secrets.GITHUB_TOKEN }}
