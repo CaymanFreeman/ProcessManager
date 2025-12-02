@@ -58,9 +58,12 @@ jobs:
         with:
           toolchain: stable
           target: ${{ matrix.target }}
+  
+      - name: Install Cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
 
-      - name: Build
-        run: cargo build --locked --verbose --release --target=${{ matrix.target }}
+      - name: Cross Build
+        run: cross build --locked --verbose --release --target=${{ matrix.target }}
 
       - name: Create Unix Archives
         if: ${{ !startsWith(matrix.os, 'windows') }}
