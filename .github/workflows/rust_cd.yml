@@ -63,7 +63,7 @@ jobs:
         run: cargo build --locked --verbose --release --target=${{ matrix.target }}
 
       - name: Create Unix Archives
-        if: !startsWith(matrix.os, 'windows')
+        if: ${{ !startsWith(matrix.os, 'windows') }}
         run: |
           mkdir -p dist
           tar -czf dist/${{ needs.release.outputs.crate-name }}-${{ needs.release.outputs.crate-version }}-${{ matrix.target }}.${{ matrix.archive }} \
