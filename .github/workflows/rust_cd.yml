@@ -99,7 +99,7 @@ jobs:
 
       - name: Build Debian Package
         if: contains(matrix.target, 'linux')
-        run: cargo deb --no-build --target ${{ matrix.target }} --output dist/${{ needs.release.outputs.crate-name }}-${{ needs.release.outputs.crate-version }}-${{ matrix.target }}.deb
+        run: cargo deb --no-build --no-strip --target ${{ matrix.target }} --output dist/${{ needs.release.outputs.crate-name }}-${{ needs.release.outputs.crate-version }}-${{ matrix.target }}.deb
 
       - name: Upload Debian Package
         if: contains(matrix.target, 'linux')
