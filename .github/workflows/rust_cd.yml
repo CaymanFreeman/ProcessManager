@@ -69,7 +69,7 @@ jobs:
         with:
           use-cross: true
           command: build
-          args: --locked --verbose --release --target=${{ matrix.target }}
+          args: --locked --verbose --release --target ${{ matrix.target }}
 
       - name: Create Unix Archives
         if: ${{ !startsWith(matrix.os, 'windows') }}
@@ -99,7 +99,7 @@ jobs:
 
       - name: Build Debian Package
         if: contains(matrix.target, 'linux')
-        run: cargo deb --output dist/${{ needs.release.outputs.crate-name }}-${{ needs.release.outputs.crate-version }}-${{ matrix.target }}.deb
+        run: cargo deb --no-build --target ${{ matrix.target }} --output dist/${{ needs.release.outputs.crate-name }}-${{ needs.release.outputs.crate-version }}-${{ matrix.target }}.deb
 
       - name: Upload Debian Package
         if: contains(matrix.target, 'linux')
