@@ -16,19 +16,8 @@ all-features = true
 extended-description = "A simple table view of the running system processes"
 section = "utility"
 priority = "optional"
-
-[package.metadata.deb.variants.x86_64-unknown-linux-gnu]
-depends = "$auto"
 assets = [
-    ["target/x86_64-unknown-linux-gnu/release/process_manager", "usr/bin/", "755"],
-    ["assets/icon.png", "usr/share/icons/hicolor/512x512/apps/process_manager.png", "644"],
-    ["assets/process_manager.desktop", "usr/share/applications/", "644"],
-]
-
-[package.metadata.deb.variants.aarch64-unknown-linux-gnu]
-depends = "libc6, libgcc-s1"
-assets = [
-    ["target/aarch64-unknown-linux-gnu/release/process_manager", "usr/bin/", "755"],
+    ["target/release/process_manager", "usr/bin/", "755"],
     ["assets/icon.png", "usr/share/icons/hicolor/512x512/apps/process_manager.png", "644"],
     ["assets/process_manager.desktop", "usr/share/applications/", "644"],
 ]
