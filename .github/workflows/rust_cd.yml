@@ -64,7 +64,7 @@ jobs:
           toolchain: stable
           target: ${{ matrix.target }}
 
-      - name: Build
+      - name: Build Binaries
         uses: actions-rs/cargo@v1
         with:
           use-cross: true
