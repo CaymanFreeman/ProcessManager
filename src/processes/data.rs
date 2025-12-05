@@ -4,8 +4,8 @@ const UNKNOWN_PROCESS_PATH: &str = "-";
 const UNKNOWN_PROCESS_NAME: &str = "-";
 const UNKNOWN_USER: &str = "-";
 
-#[derive(serde::Deserialize, serde::Serialize)]
-enum SortCategory {
+#[derive(serde::Deserialize, serde::Serialize, PartialEq)]
+pub enum SortCategory {
     Id,
     Name,
     User,
@@ -17,15 +17,15 @@ enum SortCategory {
 }
 
 #[derive(serde::Deserialize, serde::Serialize)]
-enum SortDirection {
+pub enum SortDirection {
     Ascending,
     Descending,
 }
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct SortMethod {
-    category: SortCategory,
-    direction: SortDirection,
+    pub(crate) category: SortCategory,
+    pub(crate) direction: SortDirection,
 }
 
 impl SortMethod {
@@ -45,6 +45,13 @@ impl SortMethod {
 
         if matches!(self.direction, SortDirection::Descending) {
             processes_info.reverse();
+        }
+    }
+
+    pub fn toggle_direction(&mut self) {
+        match self.direction {
+            SortDirection::Ascending => self.direction = SortDirection::Descending,
+            SortDirection::Descending => self.direction = SortDirection::Ascending,
         }
     }
 }

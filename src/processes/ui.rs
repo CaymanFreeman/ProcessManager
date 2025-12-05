@@ -1,5 +1,6 @@
 use crate::app;
 use crate::processes::data;
+use crate::processes::data::{SortCategory, SortDirection, SortMethod};
 use std::ops::RangeInclusive;
 
 const HEADER_TEXT_SIZE: f32 = 12.0;
@@ -13,6 +14,10 @@ const CONTROL_BUTTON_SIZE: [f32; 2] = [50.0, 25.0];
 const COLUMN_WIDTH_RANGE: RangeInclusive<f32> = 75.0..=500.0;
 const BLANK_PROCESS_PATH: &str = "";
 const BLANK_PROCESS_NAME: &str = "";
+
+const ASCENDING_SYMBOL: &str = "^";
+const DESCENDING_SYMBOL: &str = "v";
+const BLANK_SORT_SYMBOL: &str = "";
 
 pub fn update(app: &mut app::App, ctx: &egui::Context) {
     egui::TopBottomPanel::top("options_bar").show(ctx, |ui| {
@@ -81,11 +86,48 @@ fn update_control_bar(app: &app::App, ctx: &egui::Context, ui: &mut egui::Ui) {
     }
 }
 
-fn header_label(text: impl Into<String>, ui: &mut egui::Ui) {
-    ui.label(egui::RichText::new(text).font(egui::FontId::proportional(HEADER_TEXT_SIZE)));
+fn header_cell(
+    text: &str,
+    sort_category: Option<SortCategory>,
+    app: &mut app::App,
+    ui: &mut egui::Ui,
+) {
+    ui.style_mut().interaction.selectable_labels = false;
+    if sort_category.is_none() {
+        ui.label(egui::RichText::new(text).font(egui::FontId::proportional(HEADER_TEXT_SIZE)));
+        return;
+    }
+
+    if let Some(sort_category) = sort_category {
+        let sort_symbol = if app.sort_method.category == sort_category {
+            match app.sort_method.direction {
+                SortDirection::Ascending => ASCENDING_SYMBOL,
+                SortDirection::Descending => DESCENDING_SYMBOL,
+            }
+        } else {
+            BLANK_SORT_SYMBOL
+        };
+
+        ui.label(
+            egui::RichText::new(format!("{text} {sort_symbol}"))
+                .font(egui::FontId::proportional(HEADER_TEXT_SIZE)),
+        );
+
+        let response = ui.response();
+        if response.hovered() && response.ctx.input(|i| i.pointer.primary_clicked()) {
+            if app.sort_method.category == sort_category {
+                app.sort_method.toggle_direction();
+            } else {
+                app.sort_method = SortMethod {
+                    category: sort_category,
+                    direction: SortDirection::Ascending,
+                };
+            }
+        }
+    }
 }
 
-fn cell_label(text: impl Into<egui::WidgetText>, ui: &mut egui::Ui) {
+fn body_cell(text: &str, ui: &mut egui::Ui) {
     ui.style_mut().interaction.selectable_labels = false;
     ui.add(egui::Label::new(text).truncate());
 }
@@ -101,30 +143,30 @@ fn update_table(app: &mut app::App, ui: &mut egui::Ui) {
             9,
         )
         .header(HEADER_HEIGHT, |mut header_row| {
-            header_row.col(|ui| header_label("Name", ui));
-            header_row.col(|ui| header_label("ID", ui));
-            header_row.col(|ui| header_label("User", ui));
-            header_row.col(|ui| header_label("Memory", ui));
-            header_row.col(|ui| header_label("CPU", ui));
-            header_row.col(|ui| header_label("Disk Read", ui));
-            header_row.col(|ui| header_label("Disk Write", ui));
-            header_row.col(|ui| header_label("Path", ui));
-            header_row.col(|ui| header_label("Status", ui));
+            header_row.col(|ui| header_cell("Name", Some(SortCategory::Name), app, ui));
+            header_row.col(|ui| header_cell("ID", Some(SortCategory::Id), app, ui));
+            header_row.col(|ui| header_cell("User", Some(SortCategory::User), app, ui));
+            header_row.col(|ui| header_cell("Memory", Some(SortCategory::Memory), app, ui));
+            header_row.col(|ui| header_cell("CPU", Some(SortCategory::Cpu), app, ui));
+            header_row.col(|ui| header_cell("Disk Read", Some(SortCategory::DiskRead), app, ui));
+            header_row.col(|ui| header_cell("Disk Write", Some(SortCategory::DiskWrite), app, ui));
+            header_row.col(|ui| header_cell("Path", None, app, ui));
+            header_row.col(|ui| header_cell("Status", Some(SortCategory::Status), app, ui));
         })
         .body(|mut body_rows| {
             for process_info in &processes_info {
                 body_rows.row(ROW_HEIGHT, |mut row| {
                     row.set_selected(app.selected_pid == Some(process_info.id));
 
-                    row.col(|ui| cell_label(&process_info.name, ui));
-                    row.col(|ui| cell_label(process_info.id.to_string(), ui));
-                    row.col(|ui| cell_label(&process_info.user, ui));
-                    row.col(|ui| cell_label(&process_info.memory, ui));
-                    row.col(|ui| cell_label(&process_info.cpu, ui));
-                    row.col(|ui| cell_label(&process_info.disk_read, ui));
-                    row.col(|ui| cell_label(&process_info.disk_write, ui));
-                    row.col(|ui| cell_label(&process_info.path, ui));
-                    row.col(|ui| cell_label(&process_info.status, ui));
+                    row.col(|ui| body_cell(&process_info.name, ui));
+                    row.col(|ui| body_cell(process_info.id.to_string().as_str(), ui));
+                    row.col(|ui| body_cell(&process_info.user, ui));
+                    row.col(|ui| body_cell(&process_info.memory, ui));
+                    row.col(|ui| body_cell(&process_info.cpu, ui));
+                    row.col(|ui| body_cell(&process_info.disk_read, ui));
+                    row.col(|ui| body_cell(&process_info.disk_write, ui));
+                    row.col(|ui| body_cell(&process_info.path, ui));
+                    row.col(|ui| body_cell(&process_info.status, ui));
 
                     let response = row.response();
                     if response.hovered() && response.ctx.input(|i| i.pointer.primary_clicked()) {
