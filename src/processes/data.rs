@@ -142,7 +142,8 @@ fn extract_disk_write(process: &sysinfo::Process) -> String {
 }
 
 pub fn extract_path(process: &sysinfo::Process) -> Option<&str> {
-    process.exe().and_then(|path| path.to_str())
+    let path = process.exe()?;
+    path.to_str()
 }
 
 fn extract_status(process: &sysinfo::Process) -> String {
