@@ -1,4 +1,5 @@
 use crate::processes;
+use crate::processes::data::SortMethod;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -15,6 +16,7 @@ pub struct App {
     #[serde(skip)]
     pub process_filter: String,
     pub show_thread_processes: bool,
+    pub sort_method: SortMethod,
 }
 
 impl Default for App {
@@ -24,6 +26,7 @@ impl Default for App {
             selected_pid: None,
             process_filter: String::new(),
             show_thread_processes: false,
+            sort_method: SortMethod::default(),
         }
     }
 }

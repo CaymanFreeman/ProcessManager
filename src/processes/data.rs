@@ -1,8 +1,62 @@
-use std::sync::{Arc, Mutex};
+use crate::app;
 
 const UNKNOWN_PROCESS_PATH: &str = "-";
 const UNKNOWN_PROCESS_NAME: &str = "-";
 const UNKNOWN_USER: &str = "-";
+
+#[derive(serde::Deserialize, serde::Serialize)]
+enum SortCategory {
+    Id,
+    Name,
+    User,
+    Memory,
+    Cpu,
+    DiskRead,
+    DiskWrite,
+    Status,
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+enum SortDirection {
+    Ascending,
+    Descending,
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct SortMethod {
+    category: SortCategory,
+    direction: SortDirection,
+}
+
+impl SortMethod {
+    pub fn sort(&self, processes_info: &mut [ProcessInfo]) {
+        match self.category {
+            SortCategory::Id => processes_info.sort_by(|a, b| a.id.cmp(&b.id)),
+            SortCategory::Name => processes_info.sort_by(|a, b| a.name.cmp(&b.name)),
+            SortCategory::User => processes_info.sort_by(|a, b| a.user.cmp(&b.user)),
+            SortCategory::Memory => processes_info.sort_by(|a, b| a.memory.cmp(&b.memory)),
+            SortCategory::Cpu => processes_info.sort_by(|a, b| a.cpu.cmp(&b.cpu)),
+            SortCategory::DiskRead => processes_info.sort_by(|a, b| a.disk_read.cmp(&b.disk_read)),
+            SortCategory::DiskWrite => {
+                processes_info.sort_by(|a, b| a.disk_write.cmp(&b.disk_write));
+            }
+            SortCategory::Status => processes_info.sort_by(|a, b| a.status.cmp(&b.status)),
+        }
+
+        if matches!(self.direction, SortDirection::Descending) {
+            processes_info.reverse();
+        }
+    }
+}
+
+impl Default for SortMethod {
+    fn default() -> Self {
+        Self {
+            category: SortCategory::Cpu,
+            direction: SortDirection::Descending,
+        }
+    }
+}
 
 pub struct ProcessInfo {
     pub id: u32,
@@ -16,15 +70,16 @@ pub struct ProcessInfo {
     pub status: String,
 }
 
-pub fn prepare_processes(system: &Arc<Mutex<sysinfo::System>>) -> Vec<ProcessInfo> {
-    if let Ok(system) = system.lock() {
+pub fn prepare_processes(app: &app::App) -> Vec<ProcessInfo> {
+    if let Ok(system) = app.system.lock() {
         let processes: Vec<&sysinfo::Process> = system.processes().values().collect();
         let users = sysinfo::Users::new_with_refreshed_list();
         let cpu_count = system.cpus().len();
-        let processes_info: Vec<ProcessInfo> = processes
+        let mut processes_info: Vec<ProcessInfo> = processes
             .iter()
             .map(|process| extract_info(process, &users, cpu_count))
             .collect();
+        app.sort_method.sort(&mut processes_info);
         processes_info
     } else {
         Vec::new()

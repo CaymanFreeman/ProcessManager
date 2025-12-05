@@ -91,7 +91,7 @@ fn cell_label(text: impl Into<egui::WidgetText>, ui: &mut egui::Ui) {
 }
 
 fn update_table(app: &mut app::App, ui: &mut egui::Ui) {
-    let processes_info = data::prepare_processes(&app.system);
+    let processes_info = data::prepare_processes(app);
     egui_extras::TableBuilder::new(ui)
         .striped(true)
         .columns(
