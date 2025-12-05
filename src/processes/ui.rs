@@ -17,7 +17,6 @@ const BLANK_PROCESS_NAME: &str = "";
 
 const ASCENDING_SYMBOL: &str = "^";
 const DESCENDING_SYMBOL: &str = "v";
-const BLANK_SORT_SYMBOL: &str = "";
 
 pub fn update(app: &mut app::App, ctx: &egui::Context) {
     egui::TopBottomPanel::top("options_bar").show(ctx, |ui| {
@@ -86,6 +85,27 @@ fn update_control_bar(app: &app::App, ctx: &egui::Context, ui: &mut egui::Ui) {
     }
 }
 
+fn header_name_label(text: &str, ui: &mut egui::Ui) {
+    ui.label(egui::RichText::new(text).font(egui::FontId::proportional(HEADER_TEXT_SIZE)));
+}
+
+fn header_sort_label(sort_direction: &SortDirection, ui: &mut egui::Ui) {
+    match sort_direction {
+        SortDirection::Ascending => {
+            ui.label(
+                egui::RichText::new(ASCENDING_SYMBOL)
+                    .font(egui::FontId::proportional(HEADER_TEXT_SIZE)),
+            );
+        }
+        SortDirection::Descending => {
+            ui.label(
+                egui::RichText::new(DESCENDING_SYMBOL)
+                    .font(egui::FontId::proportional(HEADER_TEXT_SIZE)),
+            );
+        }
+    }
+}
+
 fn header_cell(
     text: &str,
     sort_category: Option<SortCategory>,
@@ -93,25 +113,18 @@ fn header_cell(
     ui: &mut egui::Ui,
 ) {
     ui.style_mut().interaction.selectable_labels = false;
-    if sort_category.is_none() {
-        ui.label(egui::RichText::new(text).font(egui::FontId::proportional(HEADER_TEXT_SIZE)));
-        return;
-    }
 
     if let Some(sort_category) = sort_category {
-        let sort_symbol = if app.sort_method.category == sort_category {
-            match app.sort_method.direction {
-                SortDirection::Ascending => ASCENDING_SYMBOL,
-                SortDirection::Descending => DESCENDING_SYMBOL,
-            }
+        if app.sort_method.category == sort_category {
+            ui.horizontal_centered(|ui| {
+                header_name_label(text, ui);
+                header_sort_label(&app.sort_method.direction, ui);
+            });
         } else {
-            BLANK_SORT_SYMBOL
-        };
-
-        ui.label(
-            egui::RichText::new(format!("{text} {sort_symbol}"))
-                .font(egui::FontId::proportional(HEADER_TEXT_SIZE)),
-        );
+            ui.horizontal_centered(|ui| {
+                header_name_label(text, ui);
+            });
+        }
 
         let response = ui.response();
         if response.hovered() && response.ctx.input(|i| i.pointer.primary_clicked()) {
@@ -124,6 +137,10 @@ fn header_cell(
                 };
             }
         }
+    } else {
+        ui.horizontal_centered(|ui| {
+            header_name_label(text, ui);
+        });
     }
 }
 
