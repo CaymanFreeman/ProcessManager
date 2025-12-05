@@ -11,7 +11,7 @@ pub struct App {
     #[serde(skip)]
     pub system: Arc<Mutex<sysinfo::System>>,
     #[serde(skip)]
-    pub selected_pid: Option<sysinfo::Pid>,
+    pub selected_pid: Option<u32>,
     #[serde(skip)]
     pub process_filter: String,
     pub show_thread_processes: bool,
