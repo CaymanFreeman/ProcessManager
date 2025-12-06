@@ -108,17 +108,17 @@ fn header_sort_label(sort_direction: &SortDirection, ui: &mut egui::Ui) {
 
 fn header_cell(
     text: &str,
-    sort_category: Option<SortCategory>,
-    app: &mut app::App,
+    header_category: Option<SortCategory>,
+    current_sort_method: &mut SortMethod,
     ui: &mut egui::Ui,
 ) {
     ui.style_mut().interaction.selectable_labels = false;
 
-    if let Some(sort_category) = sort_category {
-        if app.sort_method.category == sort_category {
+    if let Some(sort_category) = header_category {
+        if current_sort_method.category == sort_category {
             ui.horizontal_centered(|ui| {
                 header_name_label(text, ui);
-                header_sort_label(&app.sort_method.direction, ui);
+                header_sort_label(&current_sort_method.direction, ui);
             });
         } else {
             ui.horizontal_centered(|ui| {
@@ -128,13 +128,11 @@ fn header_cell(
 
         let response = ui.response();
         if response.hovered() && response.ctx.input(|i| i.pointer.primary_clicked()) {
-            if app.sort_method.category == sort_category {
-                app.sort_method.toggle_direction();
+            if current_sort_method.category == sort_category {
+                current_sort_method.toggle_direction();
             } else {
-                app.sort_method = SortMethod {
-                    category: sort_category,
-                    direction: SortDirection::Ascending,
-                };
+                current_sort_method.category = sort_category;
+                current_sort_method.direction = SortDirection::Ascending;
             }
         }
     } else {
@@ -160,15 +158,19 @@ fn update_table(app: &mut app::App, ui: &mut egui::Ui) {
             9,
         )
         .header(HEADER_HEIGHT, |mut header_row| {
-            header_row.col(|ui| header_cell("Name", Some(SortCategory::Name), app, ui));
-            header_row.col(|ui| header_cell("ID", Some(SortCategory::Id), app, ui));
-            header_row.col(|ui| header_cell("User", Some(SortCategory::User), app, ui));
-            header_row.col(|ui| header_cell("Memory", Some(SortCategory::Memory), app, ui));
-            header_row.col(|ui| header_cell("CPU", Some(SortCategory::Cpu), app, ui));
-            header_row.col(|ui| header_cell("Disk Read", Some(SortCategory::DiskRead), app, ui));
-            header_row.col(|ui| header_cell("Disk Write", Some(SortCategory::DiskWrite), app, ui));
-            header_row.col(|ui| header_cell("Path", None, app, ui));
-            header_row.col(|ui| header_cell("Status", Some(SortCategory::Status), app, ui));
+            let sort_method = &mut app.sort_method;
+            header_row.col(|ui| header_cell("Name", Some(SortCategory::Name), sort_method, ui));
+            header_row.col(|ui| header_cell("ID", Some(SortCategory::Id), sort_method, ui));
+            header_row.col(|ui| header_cell("User", Some(SortCategory::User), sort_method, ui));
+            header_row.col(|ui| header_cell("Memory", Some(SortCategory::Memory), sort_method, ui));
+            header_row.col(|ui| header_cell("CPU", Some(SortCategory::Cpu), sort_method, ui));
+            header_row
+                .col(|ui| header_cell("Disk Read", Some(SortCategory::DiskRead), sort_method, ui));
+            header_row.col(|ui| {
+                header_cell("Disk Write", Some(SortCategory::DiskWrite), sort_method, ui);
+            });
+            header_row.col(|ui| header_cell("Path", None, sort_method, ui));
+            header_row.col(|ui| header_cell("Status", Some(SortCategory::Status), sort_method, ui));
         })
         .body(|mut body_rows| {
             for process_info in &processes_info {
