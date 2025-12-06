@@ -106,6 +106,10 @@ fn header_sort_label(sort_direction: &SortDirection, ui: &mut egui::Ui) {
     }
 }
 
+fn response_primary_clicked(response: &egui::Response) -> bool {
+    response.hovered() && response.ctx.input(|i| i.pointer.primary_clicked())
+}
+
 fn header_cell(
     text: &str,
     header_category: Option<SortCategory>,
@@ -126,8 +130,7 @@ fn header_cell(
             });
         }
 
-        let response = ui.response();
-        if response.hovered() && response.ctx.input(|i| i.pointer.primary_clicked()) {
+        if response_primary_clicked(&ui.response()) {
             if current_sort_method.category == sort_category {
                 current_sort_method.toggle_direction();
             } else {
@@ -191,8 +194,7 @@ fn update_table(app: &mut app::App, ui: &mut egui::Ui) {
                     row.col(|ui| body_cell(&process_info.path, ui));
                     row.col(|ui| body_cell(&process_info.status, ui));
 
-                    let response = row.response();
-                    if response.hovered() && response.ctx.input(|i| i.pointer.primary_clicked()) {
+                    if response_primary_clicked(&row.response()) {
                         app.selected_pid = Some(process_info.id);
                     }
                 });
