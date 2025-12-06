@@ -154,7 +154,7 @@ fn update_table(app: &mut app::App, ui: &mut egui::Ui) {
     egui_extras::TableBuilder::new(ui)
         .striped(true)
         .columns(
-            egui_extras::Column::auto_with_initial_suggestion(*COLUMN_WIDTH_RANGE.start())
+            egui_extras::Column::remainder()
                 .range(COLUMN_WIDTH_RANGE)
                 .resizable(true),
             9,
