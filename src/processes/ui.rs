@@ -15,8 +15,8 @@ const COLUMN_WIDTH_RANGE: RangeInclusive<f32> = 90.0..=500.0;
 const BLANK_PROCESS_PATH: &str = "";
 const BLANK_PROCESS_NAME: &str = "";
 
-const ASCENDING_SYMBOL: &str = "^";
-const DESCENDING_SYMBOL: &str = "v";
+const ASCENDING_SYMBOL: &str = "⏶";
+const DESCENDING_SYMBOL: &str = "⏷";
 
 pub fn update(app: &mut app::App, ctx: &egui::Context) {
     egui::TopBottomPanel::top("options_bar").show(ctx, |ui| {
