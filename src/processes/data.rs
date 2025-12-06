@@ -82,18 +82,36 @@ pub fn prepare_processes(app: &app::App) -> Vec<ProcessInfo> {
         let mut processes: Vec<&sysinfo::Process> = system.processes().values().collect();
         let users = sysinfo::Users::new_with_refreshed_list();
         let cpu_count = system.cpus().len();
-        if !app.show_thread_processes() {
-            processes.retain(|process| process.thread_kind().is_none());
-        }
-        let mut processes_info: Vec<ProcessInfo> = processes
-            .iter()
-            .map(|process| extract_info(process, &users, cpu_count))
-            .collect();
-        app.sort_method().sort(&mut processes_info);
+
+        filter_thread_processes(app, &mut processes);
+        let mut processes_info = extract_processes_info(&processes, &users, cpu_count);
+        sort_processes_info(app, &mut processes_info);
+
         processes_info
     } else {
         Vec::new()
     }
+}
+
+fn filter_thread_processes(app: &app::App, processes: &mut Vec<&sysinfo::Process>) {
+    if !app.show_thread_processes() {
+        processes.retain(|process| process.thread_kind().is_none());
+    }
+}
+
+fn extract_processes_info(
+    processes: &[&sysinfo::Process],
+    users: &sysinfo::Users,
+    cpu_count: usize,
+) -> Vec<ProcessInfo> {
+    processes
+        .iter()
+        .map(|process| extract_info(process, users, cpu_count))
+        .collect()
+}
+
+fn sort_processes_info(app: &app::App, processes_info: &mut [ProcessInfo]) {
+    app.sort_method().sort(processes_info);
 }
 
 fn extract_info(
