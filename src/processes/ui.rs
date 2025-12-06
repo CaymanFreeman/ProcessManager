@@ -1,6 +1,5 @@
 use crate::app;
 use crate::processes::data;
-use crate::processes::data::{SortCategory, SortDirection, SortMethod};
 use std::ops::RangeInclusive;
 
 const HEADER_TEXT_SIZE: f32 = 12.0;
@@ -33,8 +32,8 @@ pub fn update(app: &mut app::App, ctx: &egui::Context) {
 
 fn update_options_panel(app: &mut app::App, ui: &mut egui::Ui) {
     ui.horizontal(|ui| {
-        ui.add(egui::TextEdit::singleline(&mut app.process_filter).hint_text("Filter processes"));
-        ui.checkbox(&mut app.show_thread_processes, "Threads");
+        ui.add(egui::TextEdit::singleline(app.process_filter_mut()).hint_text("Filter processes"));
+        ui.checkbox(app.show_thread_processes_mut(), "Threads");
     });
 }
 
@@ -49,7 +48,7 @@ fn control_button(text: impl Into<String>, ui: &mut egui::Ui) -> egui::Response 
 
 #[expect(clippy::collapsible_if)]
 fn update_control_bar(app: &app::App, ctx: &egui::Context, ui: &mut egui::Ui) {
-    if let (Some(pid), Ok(system)) = (app.selected_pid, app.system.lock()) {
+    if let (Some(pid), Ok(system)) = (app.selected_pid(), app.system().lock()) {
         if let Some(process) = system.processes().get(&sysinfo::Pid::from_u32(pid)) {
             ui.horizontal_centered(|ui| {
                 if control_button("Terminate", ui).clicked() {
@@ -88,15 +87,15 @@ fn header_name_label(text: &str, ui: &mut egui::Ui) {
     ui.label(egui::RichText::new(text).font(egui::FontId::proportional(HEADER_TEXT_SIZE)));
 }
 
-fn header_sort_label(sort_direction: &SortDirection, ui: &mut egui::Ui) {
+fn header_sort_label(sort_direction: &data::SortDirection, ui: &mut egui::Ui) {
     match sort_direction {
-        SortDirection::Ascending => {
+        data::SortDirection::Ascending => {
             ui.label(
                 egui::RichText::new(ASCENDING_SYMBOL)
                     .font(egui::FontId::proportional(HEADER_TEXT_SIZE)),
             );
         }
-        SortDirection::Descending => {
+        data::SortDirection::Descending => {
             ui.label(
                 egui::RichText::new(DESCENDING_SYMBOL)
                     .font(egui::FontId::proportional(HEADER_TEXT_SIZE)),
@@ -111,8 +110,8 @@ fn response_primary_clicked(response: &egui::Response) -> bool {
 
 fn header_cell(
     text: &str,
-    header_category: Option<SortCategory>,
-    current_sort_method: &mut SortMethod,
+    header_category: Option<data::SortCategory>,
+    current_sort_method: &mut data::SortMethod,
     ui: &mut egui::Ui,
 ) {
     ui.style_mut().interaction.selectable_labels = false;
@@ -134,7 +133,7 @@ fn header_cell(
                 current_sort_method.toggle_direction();
             } else {
                 current_sort_method.category = sort_category;
-                current_sort_method.direction = SortDirection::Ascending;
+                current_sort_method.direction = data::SortDirection::Ascending;
             }
         }
     } else {
@@ -164,24 +163,39 @@ fn update_table(app: &mut app::App, ui: &mut egui::Ui) {
             9,
         )
         .header(HEADER_HEIGHT, |mut header_row| {
-            let sort_method = &mut app.sort_method;
-            header_row.col(|ui| header_cell("Name", Some(SortCategory::Name), sort_method, ui));
-            header_row.col(|ui| header_cell("ID", Some(SortCategory::Id), sort_method, ui));
-            header_row.col(|ui| header_cell("User", Some(SortCategory::User), sort_method, ui));
-            header_row.col(|ui| header_cell("Memory", Some(SortCategory::Memory), sort_method, ui));
-            header_row.col(|ui| header_cell("CPU", Some(SortCategory::Cpu), sort_method, ui));
+            let sort_method = app.sort_method_mut();
             header_row
-                .col(|ui| header_cell("Disk Read", Some(SortCategory::DiskRead), sort_method, ui));
+                .col(|ui| header_cell("Name", Some(data::SortCategory::Name), sort_method, ui));
+            header_row.col(|ui| header_cell("ID", Some(data::SortCategory::Id), sort_method, ui));
+            header_row
+                .col(|ui| header_cell("User", Some(data::SortCategory::User), sort_method, ui));
+            header_row
+                .col(|ui| header_cell("Memory", Some(data::SortCategory::Memory), sort_method, ui));
+            header_row.col(|ui| header_cell("CPU", Some(data::SortCategory::Cpu), sort_method, ui));
             header_row.col(|ui| {
-                header_cell("Disk Write", Some(SortCategory::DiskWrite), sort_method, ui);
+                header_cell(
+                    "Disk Read",
+                    Some(data::SortCategory::DiskRead),
+                    sort_method,
+                    ui,
+                );
+            });
+            header_row.col(|ui| {
+                header_cell(
+                    "Disk Write",
+                    Some(data::SortCategory::DiskWrite),
+                    sort_method,
+                    ui,
+                );
             });
             header_row.col(|ui| header_cell("Path", None, sort_method, ui));
-            header_row.col(|ui| header_cell("Status", Some(SortCategory::Status), sort_method, ui));
+            header_row
+                .col(|ui| header_cell("Status", Some(data::SortCategory::Status), sort_method, ui));
         })
         .body(|mut body_rows| {
             for process_info in &processes_info {
                 body_rows.row(ROW_HEIGHT, |mut row| {
-                    row.set_selected(app.selected_pid == Some(process_info.id));
+                    row.set_selected(app.selected_pid() == Some(process_info.id));
 
                     row.col(|ui| body_cell(&process_info.name, ui));
                     row.col(|ui| body_cell(process_info.id.to_string().as_str(), ui));
@@ -194,7 +208,7 @@ fn update_table(app: &mut app::App, ui: &mut egui::Ui) {
                     row.col(|ui| body_cell(&process_info.status, ui));
 
                     if response_primary_clicked(&row.response()) {
-                        app.selected_pid = Some(process_info.id);
+                        app.set_selected_pid(Some(process_info.id));
                     }
                 });
             }
