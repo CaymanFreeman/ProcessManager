@@ -85,6 +85,7 @@ pub fn prepare_processes(app: &app::App) -> Vec<ProcessInfo> {
 
         filter_thread_processes(app, &mut processes);
         let mut processes_info = extract_processes_info(&processes, &users, cpu_count);
+        filter_user_input(app, &mut processes_info);
         sort_processes_info(app, &mut processes_info);
 
         processes_info
@@ -97,6 +98,19 @@ fn filter_thread_processes(app: &app::App, processes: &mut Vec<&sysinfo::Process
     if !app.show_thread_processes() {
         processes.retain(|process| process.thread_kind().is_none());
     }
+}
+
+fn filter_user_input(app: &app::App, processes_info: &mut Vec<ProcessInfo>) {
+    if app.process_filter().is_empty() {
+        return;
+    }
+
+    processes_info.retain(|process_info| {
+        let filter = app.process_filter();
+        process_info.name.contains(filter)
+            || process_info.user.contains(filter)
+            || process_info.path.contains(filter)
+    });
 }
 
 fn extract_processes_info(

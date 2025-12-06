@@ -32,7 +32,10 @@ pub fn update(app: &mut app::App, ctx: &egui::Context) {
 
 fn update_options_panel(app: &mut app::App, ui: &mut egui::Ui) {
     ui.horizontal(|ui| {
-        ui.add(egui::TextEdit::singleline(app.process_filter_mut()).hint_text("Filter processes"));
+        ui.add(
+            egui::TextEdit::singleline(app.process_filter_mut())
+                .hint_text("Filter by name, user, or path"),
+        );
         ui.checkbox(app.show_thread_processes_mut(), "Threads");
     });
 }
