@@ -147,6 +147,10 @@ fn body_cell(text: &str, ui: &mut egui::Ui) {
     ui.add(egui::Label::new(text).truncate());
 }
 
+fn format_bytes(bytes: u64) -> String {
+    bytesize::ByteSize(bytes).to_string()
+}
+
 fn update_table(app: &mut app::App, ui: &mut egui::Ui) {
     let processes_info = data::prepare_processes(app);
     egui_extras::TableBuilder::new(ui)
@@ -180,10 +184,10 @@ fn update_table(app: &mut app::App, ui: &mut egui::Ui) {
                     row.col(|ui| body_cell(&process_info.name, ui));
                     row.col(|ui| body_cell(process_info.id.to_string().as_str(), ui));
                     row.col(|ui| body_cell(&process_info.user, ui));
-                    row.col(|ui| body_cell(&process_info.memory, ui));
+                    row.col(|ui| body_cell(format_bytes(process_info.memory).as_str(), ui));
                     row.col(|ui| body_cell(&process_info.cpu, ui));
-                    row.col(|ui| body_cell(&process_info.disk_read, ui));
-                    row.col(|ui| body_cell(&process_info.disk_write, ui));
+                    row.col(|ui| body_cell(format_bytes(process_info.disk_read).as_str(), ui));
+                    row.col(|ui| body_cell(format_bytes(process_info.disk_write).as_str(), ui));
                     row.col(|ui| body_cell(&process_info.path, ui));
                     row.col(|ui| body_cell(&process_info.status, ui));
 

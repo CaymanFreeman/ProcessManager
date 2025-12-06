@@ -69,10 +69,10 @@ pub struct ProcessInfo {
     pub id: u32,
     pub name: String,
     pub user: String,
-    pub memory: String,
+    pub memory: u64,
     pub cpu: String,
-    pub disk_read: String,
-    pub disk_write: String,
+    pub disk_read: u64,
+    pub disk_write: u64,
     pub path: String,
     pub status: String,
 }
@@ -135,20 +135,20 @@ fn extract_user<'a>(process: &sysinfo::Process, users: &'a sysinfo::Users) -> Op
         .map(|user| user.name())
 }
 
-fn extract_memory(process: &sysinfo::Process) -> String {
-    bytesize::ByteSize(process.memory()).to_string()
+fn extract_memory(process: &sysinfo::Process) -> u64 {
+    process.memory()
 }
 
 fn extract_cpu(process: &sysinfo::Process, cpu_count: usize) -> String {
     format!("{:.2}%", process.cpu_usage() / cpu_count as f32)
 }
 
-fn extract_disk_read(process: &sysinfo::Process) -> String {
-    bytesize::ByteSize(process.disk_usage().read_bytes).to_string()
+fn extract_disk_read(process: &sysinfo::Process) -> u64 {
+    process.disk_usage().read_bytes
 }
 
-fn extract_disk_write(process: &sysinfo::Process) -> String {
-    bytesize::ByteSize(process.disk_usage().written_bytes).to_string()
+fn extract_disk_write(process: &sysinfo::Process) -> u64 {
+    process.disk_usage().written_bytes
 }
 
 pub fn extract_path(process: &sysinfo::Process) -> Option<&str> {
