@@ -6,12 +6,11 @@ use std::ops::RangeInclusive;
 const HEADER_TEXT_SIZE: f32 = 12.0;
 const HEADER_HEIGHT: f32 = 25.0;
 const ROW_HEIGHT: f32 = 18.0;
-
 const CONTROL_PANEL_MIN_HEIGHT: f32 = 40.0;
 const CONTROL_BUTTON_TEXT_SIZE: f32 = 16.0;
 const CONTROL_BUTTON_SIZE: [f32; 2] = [50.0, 25.0];
-
 const COLUMN_WIDTH_RANGE: RangeInclusive<f32> = 90.0..=500.0;
+
 const BLANK_PROCESS_PATH: &str = "";
 const BLANK_PROCESS_NAME: &str = "";
 
