@@ -4,7 +4,7 @@ const UNKNOWN_PROCESS_PATH: &str = "-";
 const UNKNOWN_PROCESS_NAME: &str = "-";
 const UNKNOWN_USER: &str = "-";
 
-#[derive(serde::Deserialize, serde::Serialize, PartialEq)]
+#[derive(serde::Deserialize, serde::Serialize, PartialEq, Eq)]
 pub enum SortCategory {
     Id,
     Name,
