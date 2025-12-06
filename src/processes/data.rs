@@ -78,20 +78,21 @@ pub struct ProcessInfo {
 }
 
 pub fn prepare_processes(app: &app::App) -> Vec<ProcessInfo> {
-    if let Ok(system) = app.system().lock() {
-        let mut processes: Vec<&sysinfo::Process> = system.processes().values().collect();
-        let users = sysinfo::Users::new_with_refreshed_list();
-        let cpu_count = system.cpus().len();
+    let system_lock = app.system();
+    let Ok(system) = system_lock.lock() else {
+        return Vec::new();
+    };
 
-        filter_thread_processes(app, &mut processes);
-        let mut processes_info = extract_processes_info(&processes, &users, cpu_count);
-        filter_user_input(app, &mut processes_info);
-        sort_processes_info(app, &mut processes_info);
+    let mut processes: Vec<&sysinfo::Process> = system.processes().values().collect();
+    let users = sysinfo::Users::new_with_refreshed_list();
+    let cpu_count = system.cpus().len();
 
-        processes_info
-    } else {
-        Vec::new()
-    }
+    filter_thread_processes(app, &mut processes);
+    let mut processes_info = extract_processes_info(&processes, &users, cpu_count);
+    filter_user_input(app, &mut processes_info);
+    sort_processes_info(app, &mut processes_info);
+
+    processes_info
 }
 
 fn filter_thread_processes(app: &app::App, processes: &mut Vec<&sysinfo::Process>) {

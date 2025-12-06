@@ -49,41 +49,45 @@ fn control_button(text: impl Into<String>, ui: &mut egui::Ui) -> egui::Response 
     )
 }
 
-#[expect(clippy::collapsible_if)]
 fn update_control_bar(app: &app::App, ctx: &egui::Context, ui: &mut egui::Ui) {
-    if let (Some(pid), Ok(system)) = (app.selected_pid(), app.system().lock()) {
-        if let Some(process) = system.processes().get(&sysinfo::Pid::from_u32(pid)) {
-            ui.horizontal_centered(|ui| {
-                if control_button("Terminate", ui).clicked() {
-                    process.kill_with(sysinfo::Signal::Term);
-                }
+    let system_lock = app.system();
+    let (Some(pid), Ok(system)) = (app.selected_pid(), system_lock.lock()) else {
+        return;
+    };
 
-                if control_button("Kill", ui).clicked() {
-                    process.kill_with(sysinfo::Signal::Kill);
-                }
+    let Some(process) = system.processes().get(&sysinfo::Pid::from_u32(pid)) else {
+        return;
+    };
 
-                if control_button("Copy Path", ui).clicked() {
-                    ctx.copy_text(
-                        data::extract_path(process)
-                            .unwrap_or(BLANK_PROCESS_PATH)
-                            .to_owned(),
-                    );
-                }
-
-                if control_button("Copy Name", ui).clicked() {
-                    ctx.copy_text(
-                        data::extract_name(process)
-                            .unwrap_or(BLANK_PROCESS_NAME)
-                            .to_owned(),
-                    );
-                }
-
-                if control_button("Copy PID", ui).clicked() {
-                    ctx.copy_text(process.pid().to_string());
-                }
-            });
+    ui.horizontal_centered(|ui| {
+        if control_button("Terminate", ui).clicked() {
+            process.kill_with(sysinfo::Signal::Term);
         }
-    }
+
+        if control_button("Kill", ui).clicked() {
+            process.kill_with(sysinfo::Signal::Kill);
+        }
+
+        if control_button("Copy Path", ui).clicked() {
+            ctx.copy_text(
+                data::extract_path(process)
+                    .unwrap_or(BLANK_PROCESS_PATH)
+                    .to_owned(),
+            );
+        }
+
+        if control_button("Copy Name", ui).clicked() {
+            ctx.copy_text(
+                data::extract_name(process)
+                    .unwrap_or(BLANK_PROCESS_NAME)
+                    .to_owned(),
+            );
+        }
+
+        if control_button("Copy PID", ui).clicked() {
+            ctx.copy_text(process.pid().to_string());
+        }
+    });
 }
 
 fn header_name_label(text: &str, ui: &mut egui::Ui) {
@@ -119,30 +123,31 @@ fn header_cell(
 ) {
     ui.style_mut().interaction.selectable_labels = false;
 
-    if let Some(sort_category) = header_category {
-        if current_sort_method.category == sort_category {
-            ui.horizontal_centered(|ui| {
-                header_name_label(text, ui);
-                header_sort_label(&current_sort_method.direction, ui);
-            });
-        } else {
-            ui.horizontal_centered(|ui| {
-                header_name_label(text, ui);
-            });
-        }
+    let Some(sort_category) = header_category else {
+        ui.horizontal_centered(|ui| {
+            header_name_label(text, ui);
+        });
+        return;
+    };
 
-        if response_primary_clicked(&ui.response()) {
-            if current_sort_method.category == sort_category {
-                current_sort_method.toggle_direction();
-            } else {
-                current_sort_method.category = sort_category;
-                current_sort_method.direction = data::SortDirection::Ascending;
-            }
-        }
+    if current_sort_method.category == sort_category {
+        ui.horizontal_centered(|ui| {
+            header_name_label(text, ui);
+            header_sort_label(&current_sort_method.direction, ui);
+        });
     } else {
         ui.horizontal_centered(|ui| {
             header_name_label(text, ui);
         });
+    }
+
+    if response_primary_clicked(&ui.response()) {
+        if current_sort_method.category == sort_category {
+            current_sort_method.toggle_direction();
+        } else {
+            current_sort_method.category = sort_category;
+            current_sort_method.direction = data::SortDirection::Ascending;
+        }
     }
 }
 
