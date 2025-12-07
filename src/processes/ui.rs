@@ -14,6 +14,7 @@ const CLIPBOARD_SYMBOL: &str = "📋";
 const PLAY_SYMBOL: &str = "▶";
 const PAUSE_SYMBOL: &str = "⏸";
 const REFRESH_SYMBOL: &str = "⟳";
+const X_SYMBOL: &str = "X";
 
 const BLANK_PROCESS_PATH: &str = "";
 const BLANK_PROCESS_NAME: &str = "";
@@ -27,6 +28,7 @@ pub struct UserInput {
     selected_pid: Option<u32>,
 
     show_thread_processes: bool,
+    hierarchical_view: bool,
     process_filter: String,
     sort_method: processes::SortMethod,
     continue_refreshing: bool,
@@ -37,6 +39,7 @@ impl Default for UserInput {
         Self {
             selected_pid: None,
             show_thread_processes: false,
+            hierarchical_view: true,
             process_filter: String::new(),
             sort_method: Default::default(),
             continue_refreshing: true,
@@ -57,8 +60,20 @@ impl UserInput {
         &self.process_filter
     }
 
+    pub(crate) fn clear_process_filter(&mut self) {
+        self.process_filter = String::new();
+    }
+
     pub(crate) fn process_filter_mut(&mut self) -> &mut String {
         &mut self.process_filter
+    }
+
+    pub(crate) fn hierarchical_view(&self) -> bool {
+        self.hierarchical_view
+    }
+
+    pub(crate) fn hierarchical_view_mut(&mut self) -> &mut bool {
+        &mut self.hierarchical_view
     }
 
     pub(crate) fn show_thread_processes(&self) -> bool {
@@ -128,9 +143,14 @@ fn update_options_panel(app: &app::App, ui: &mut egui::Ui) {
                 .hint_text("Filter by name, user, or path"),
         );
 
+        if ui.button(X_SYMBOL).clicked() {
+            user_input.clear_process_filter();
+        }
+
         ui.separator();
 
         ui.checkbox(user_input.show_thread_processes_mut(), "Include Threads");
+        ui.checkbox(user_input.hierarchical_view_mut(), "Hierarchical View");
     });
 }
 

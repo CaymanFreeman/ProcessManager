@@ -86,15 +86,20 @@ pub fn prepare_processes(app: &app::App) -> Vec<ProcessInfo> {
     filter_thread_processes(user_input.show_thread_processes(), &mut processes);
     let mut processes_info = extract_processes_info(&processes, &users, cpu_count);
     filter_user_input(user_input.process_filter(), &mut processes_info);
-    user_input.sort_method().sort(&mut processes_info);
+    if user_input.hierarchical_view() {
+    } else {
+        user_input.sort_method().sort(&mut processes_info);
+    }
 
     processes_info
 }
 
 fn filter_thread_processes(show_thread_processes: bool, processes: &mut Vec<&sysinfo::Process>) {
-    if !show_thread_processes {
-        processes.retain(|process| process.thread_kind().is_none());
+    if show_thread_processes {
+        return;
     }
+
+    processes.retain(|process| process.thread_kind().is_none());
 }
 
 fn filter_user_input(process_filter: &str, processes_info: &mut Vec<ProcessInfo>) {
