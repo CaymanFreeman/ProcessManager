@@ -156,8 +156,6 @@ fn update_control_bar(app: &app::App, ctx: &egui::Context, ui: &mut egui::Ui) {
             process.kill_with(sysinfo::Signal::Term);
         }
 
-        //ui.separator();
-
         if ui.button("Kill").clicked() {
             process.kill_with(sysinfo::Signal::Kill);
         }
