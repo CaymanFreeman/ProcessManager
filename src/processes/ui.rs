@@ -103,7 +103,7 @@ fn update_control_bar(app: &app::App, ctx: &egui::Context, ui: &mut egui::Ui) {
         return;
     };
 
-    let Some(selected_pid) = user_input.selected_pid else {
+    let Some(selected_pid) = user_input.selected_pid() else {
         return;
     };
 
@@ -114,34 +114,45 @@ fn update_control_bar(app: &app::App, ctx: &egui::Context, ui: &mut egui::Ui) {
         return;
     };
 
-    ui.horizontal_centered(|ui| {
-        if control_button("Terminate", ui).clicked() {
-            process.kill_with(sysinfo::Signal::Term);
-        }
-
-        if control_button("Kill", ui).clicked() {
-            process.kill_with(sysinfo::Signal::Kill);
-        }
-
-        if control_button("Copy Path", ui).clicked() {
-            ctx.copy_text(
-                data::extract_path(process)
-                    .unwrap_or(BLANK_PROCESS_PATH)
-                    .to_owned(),
-            );
-        }
-
-        if control_button("Copy Name", ui).clicked() {
-            ctx.copy_text(
+    ui.vertical(|ui| {
+        ui.horizontal(|ui| {
+            ui.label(format!(
+                "{} ({})",
                 data::extract_name(process)
                     .unwrap_or(BLANK_PROCESS_NAME)
                     .to_owned(),
-            );
-        }
+                selected_pid
+            ));
+        });
+        ui.horizontal_centered(|ui| {
+            if control_button("Terminate", ui).clicked() {
+                process.kill_with(sysinfo::Signal::Term);
+            }
 
-        if control_button("Copy PID", ui).clicked() {
-            ctx.copy_text(selected_pid.to_string());
-        }
+            if control_button("Kill", ui).clicked() {
+                process.kill_with(sysinfo::Signal::Kill);
+            }
+
+            if control_button("Copy Path", ui).clicked() {
+                ctx.copy_text(
+                    data::extract_path(process)
+                        .unwrap_or(BLANK_PROCESS_PATH)
+                        .to_owned(),
+                );
+            }
+
+            if control_button("Copy Name", ui).clicked() {
+                ctx.copy_text(
+                    data::extract_name(process)
+                        .unwrap_or(BLANK_PROCESS_NAME)
+                        .to_owned(),
+                );
+            }
+
+            if control_button("Copy PID", ui).clicked() {
+                ctx.copy_text(selected_pid.to_string());
+            }
+        });
     });
 }
 
