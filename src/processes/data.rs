@@ -7,8 +7,6 @@ const UNKNOWN_USER: &str = "-";
 #[derive(serde::Deserialize, serde::Serialize, PartialEq, Eq)]
 pub enum SortCategory {
     Id,
-    Name,
-    User,
     Memory,
     Cpu,
     DiskRead,
@@ -32,8 +30,6 @@ impl SortMethod {
     pub fn sort(&self, processes_info: &mut [ProcessInfo]) {
         match self.category {
             SortCategory::Id => processes_info.sort_by(|a, b| a.id.cmp(&b.id)),
-            SortCategory::Name => processes_info.sort_by(|a, b| a.name.cmp(&b.name)),
-            SortCategory::User => processes_info.sort_by(|a, b| a.user.cmp(&b.user)),
             SortCategory::Memory => processes_info.sort_by(|a, b| a.memory.cmp(&b.memory)),
             SortCategory::Cpu => processes_info.sort_by(|a, b| a.cpu.cmp(&b.cpu)),
             SortCategory::DiskRead => processes_info.sort_by(|a, b| a.disk_read.cmp(&b.disk_read)),

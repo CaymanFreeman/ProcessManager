@@ -243,11 +243,9 @@ fn update_table(app: &app::App, ui: &mut egui::Ui) {
         )
         .header(HEADER_HEIGHT, |mut header_row| {
             let sort_method = user_input.sort_method_mut();
-            header_row
-                .col(|ui| header_cell("Name", Some(data::SortCategory::Name), sort_method, ui));
+            header_row.col(|ui| header_cell("Name", None, sort_method, ui));
             header_row.col(|ui| header_cell("ID", Some(data::SortCategory::Id), sort_method, ui));
-            header_row
-                .col(|ui| header_cell("User", Some(data::SortCategory::User), sort_method, ui));
+            header_row.col(|ui| header_cell("User", None, sort_method, ui));
             header_row
                 .col(|ui| header_cell("Memory", Some(data::SortCategory::Memory), sort_method, ui));
             header_row.col(|ui| header_cell("CPU", Some(data::SortCategory::Cpu), sort_method, ui));
