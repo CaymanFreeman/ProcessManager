@@ -79,7 +79,7 @@ pub struct ProcessInfo {
 
 pub fn prepare_processes(app: &app::App) -> Vec<ProcessInfo> {
     let (system, user_input) = (app.system(), app.user_input());
-    let (Ok(system), Ok(user_input)) = (system.lock(), user_input.read()) else {
+    let (Ok(system), Ok(user_input)) = (system.read(), user_input.read()) else {
         return Vec::new();
     };
 

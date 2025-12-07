@@ -1,5 +1,5 @@
 use crate::processes;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 use std::thread;
 use std::time::Duration;
 
@@ -9,7 +9,7 @@ const SYSTEM_REFRESH_INTERVAL: Duration = Duration::from_secs(1);
 #[serde(default)]
 pub struct App {
     #[serde(skip)]
-    system: Arc<Mutex<sysinfo::System>>,
+    system: Arc<RwLock<sysinfo::System>>,
 
     #[serde(skip)]
     selected_pid: Option<u32>,
@@ -20,7 +20,7 @@ pub struct App {
 impl Default for App {
     fn default() -> Self {
         Self {
-            system: Arc::new(Mutex::new(sysinfo::System::new_all())),
+            system: Arc::new(RwLock::new(sysinfo::System::new_all())),
             user_input: Arc::new(RwLock::new(processes::UserInput::default())),
             selected_pid: None,
         }
@@ -50,7 +50,7 @@ impl App {
         self.selected_pid = pid;
     }
 
-    pub(crate) fn system(&self) -> Arc<Mutex<sysinfo::System>> {
+    pub(crate) fn system(&self) -> Arc<RwLock<sysinfo::System>> {
         self.system.clone()
     }
 
@@ -58,10 +58,10 @@ impl App {
         self.user_input.clone()
     }
 
-    fn system_refresh_loop(system: &Arc<Mutex<sysinfo::System>>, ctx: &egui::Context) -> ! {
+    fn system_refresh_loop(system: &Arc<RwLock<sysinfo::System>>, ctx: &egui::Context) -> ! {
         loop {
             thread::sleep(SYSTEM_REFRESH_INTERVAL);
-            let Ok(mut system) = system.lock() else {
+            let Ok(mut system) = system.write() else {
                 continue;
             };
             system.refresh_processes(sysinfo::ProcessesToUpdate::All, true);

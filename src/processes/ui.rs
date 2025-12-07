@@ -88,7 +88,7 @@ fn control_button(text: impl Into<String>, ui: &mut egui::Ui) -> egui::Response 
 
 fn update_control_bar(app: &app::App, ctx: &egui::Context, ui: &mut egui::Ui) {
     let system = app.system();
-    let (Some(pid), Ok(system)) = (app.selected_pid(), system.lock()) else {
+    let (Some(pid), Ok(system)) = (app.selected_pid(), system.read()) else {
         return;
     };
 
