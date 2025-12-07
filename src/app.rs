@@ -10,10 +10,6 @@ const SYSTEM_REFRESH_INTERVAL: Duration = Duration::from_secs(1);
 pub struct App {
     #[serde(skip)]
     system: Arc<RwLock<sysinfo::System>>,
-
-    #[serde(skip)]
-    selected_pid: Option<u32>,
-
     user_input: Arc<RwLock<processes::UserInput>>,
 }
 
@@ -22,7 +18,6 @@ impl Default for App {
         Self {
             system: Arc::new(RwLock::new(sysinfo::System::new_all())),
             user_input: Arc::new(RwLock::new(processes::UserInput::default())),
-            selected_pid: None,
         }
     }
 }
@@ -40,14 +35,6 @@ impl App {
         thread::spawn(move || Self::system_refresh_loop(&system, &ctx));
 
         app
-    }
-
-    pub(crate) fn selected_pid(&self) -> Option<u32> {
-        self.selected_pid
-    }
-
-    pub(crate) fn set_selected_pid(&mut self, pid: Option<u32>) {
-        self.selected_pid = pid;
     }
 
     pub(crate) fn system(&self) -> Arc<RwLock<sysinfo::System>> {

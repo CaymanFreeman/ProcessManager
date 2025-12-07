@@ -18,12 +18,23 @@ const DESCENDING_SYMBOL: &str = "⏷";
 
 #[derive(serde::Deserialize, serde::Serialize, Default)]
 pub struct UserInput {
+    #[serde(skip)]
+    selected_pid: Option<u32>,
+
     show_thread_processes: bool,
     process_filter: String,
     sort_method: processes::SortMethod,
 }
 
 impl UserInput {
+    pub(crate) fn selected_pid(&self) -> Option<u32> {
+        self.selected_pid
+    }
+
+    pub(crate) fn set_selected_pid(&mut self, pid: Option<u32>) {
+        self.selected_pid = pid;
+    }
+
     pub(crate) fn process_filter(&self) -> &str {
         &self.process_filter
     }
@@ -49,7 +60,7 @@ impl UserInput {
     }
 }
 
-pub fn update(app: &mut app::App, ctx: &egui::Context) {
+pub fn update(app: &app::App, ctx: &egui::Context) {
     egui::TopBottomPanel::top("options_bar").show(ctx, |ui| {
         update_options_panel(app, ui);
     });
@@ -87,12 +98,19 @@ fn control_button(text: impl Into<String>, ui: &mut egui::Ui) -> egui::Response 
 }
 
 fn update_control_bar(app: &app::App, ctx: &egui::Context, ui: &mut egui::Ui) {
-    let system = app.system();
-    let (Some(pid), Ok(system)) = (app.selected_pid(), system.read()) else {
+    let (system, user_input) = (app.system(), app.user_input());
+    let (Ok(system), Ok(user_input)) = (system.read(), user_input.read()) else {
         return;
     };
 
-    let Some(process) = system.processes().get(&sysinfo::Pid::from_u32(pid)) else {
+    let Some(selected_pid) = user_input.selected_pid else {
+        return;
+    };
+
+    let Some(process) = system
+        .processes()
+        .get(&sysinfo::Pid::from_u32(selected_pid))
+    else {
         return;
     };
 
@@ -122,7 +140,7 @@ fn update_control_bar(app: &app::App, ctx: &egui::Context, ui: &mut egui::Ui) {
         }
 
         if control_button("Copy PID", ui).clicked() {
-            ctx.copy_text(process.pid().to_string());
+            ctx.copy_text(selected_pid.to_string());
         }
     });
 }
@@ -197,7 +215,7 @@ fn format_bytes(bytes: u64) -> String {
     bytesize::ByteSize(bytes).to_string()
 }
 
-fn update_table(app: &mut app::App, ui: &mut egui::Ui) {
+fn update_table(app: &app::App, ui: &mut egui::Ui) {
     let processes_info = data::prepare_processes(app);
     let user_input = app.user_input();
     let Ok(mut user_input) = user_input.write() else {
@@ -245,7 +263,7 @@ fn update_table(app: &mut app::App, ui: &mut egui::Ui) {
         .body(|mut body_rows| {
             for process_info in processes_info {
                 body_rows.row(ROW_HEIGHT, |mut row| {
-                    row.set_selected(app.selected_pid() == Some(process_info.id));
+                    row.set_selected(user_input.selected_pid() == Some(process_info.id));
 
                     row.col(|ui| body_cell(&process_info.name, ui));
                     row.col(|ui| body_cell(process_info.id.to_string().as_str(), ui));
@@ -258,7 +276,7 @@ fn update_table(app: &mut app::App, ui: &mut egui::Ui) {
                     row.col(|ui| body_cell(&process_info.status, ui));
 
                     if response_primary_clicked(&row.response()) {
-                        app.set_selected_pid(Some(process_info.id));
+                        user_input.set_selected_pid(Some(process_info.id));
                     }
                 });
             }
