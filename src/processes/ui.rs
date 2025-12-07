@@ -8,8 +8,9 @@ const ROW_HEIGHT: f32 = 18.0;
 const CONTROL_PANEL_MIN_HEIGHT: f32 = 40.0;
 const CONTROL_BUTTON_TEXT_SIZE: f32 = 16.0;
 const CONTROL_BUTTON_SIZE: [f32; 2] = [50.0, 25.0];
-const FIRST_COLUMN_WIDTH: f32 = 200.0;
-const COLUMN_WIDTH_RANGE: RangeInclusive<f32> = 90.0..=500.0;
+const LARGE_COLUMN_WIDTH: f32 = 250.0;
+const SMALL_COLUMNS_WIDTH: f32 = 65.0;
+const COLUMN_WIDTH_RANGE: RangeInclusive<f32> = 65.0..=500.0;
 
 const CLIPBOARD_SYMBOL: &str = "📋";
 
@@ -233,6 +234,20 @@ fn format_bytes(bytes: u64) -> String {
     bytesize::ByteSize(bytes).to_string()
 }
 
+fn large_column() -> egui_extras::Column {
+    egui_extras::Column::exact(LARGE_COLUMN_WIDTH)
+        .clip(true)
+        .range(COLUMN_WIDTH_RANGE)
+        .resizable(true)
+}
+
+fn small_column() -> egui_extras::Column {
+    egui_extras::Column::exact(SMALL_COLUMNS_WIDTH)
+        .clip(true)
+        .range(COLUMN_WIDTH_RANGE)
+        .resizable(true)
+}
+
 fn update_table(app: &app::App, ui: &mut egui::Ui) {
     let processes_info = data::prepare_processes(app);
     let user_input = app.user_input();
@@ -242,19 +257,10 @@ fn update_table(app: &app::App, ui: &mut egui::Ui) {
 
     egui_extras::TableBuilder::new(ui)
         .striped(true)
-        .column(
-            egui_extras::Column::initial(FIRST_COLUMN_WIDTH)
-                .clip(true)
-                .range(COLUMN_WIDTH_RANGE)
-                .resizable(true),
-        )
-        .columns(
-            egui_extras::Column::remainder()
-                .clip(true)
-                .range(COLUMN_WIDTH_RANGE)
-                .resizable(true),
-            8,
-        )
+        .column(large_column())
+        .columns(small_column(), 6)
+        .column(large_column())
+        .column(small_column())
         .header(HEADER_HEIGHT, |mut header_row| {
             let sort_method = user_input.sort_method_mut();
             header_row.col(|ui| header_cell("Name", None, sort_method, ui));

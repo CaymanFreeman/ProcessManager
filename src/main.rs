@@ -4,8 +4,7 @@ fn main() -> eframe::Result {
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_clamp_size_to_monitor_size(true)
-            .with_inner_size([1280.0, 720.0])
-            .with_min_inner_size([475.0, 350.0])
+            .with_inner_size([1025.0, 720.0])
             .with_app_id("process_manager")
             .with_icon(
                 eframe::icon_data::from_png_bytes(&include_bytes!("../assets/icon.png")[..])
