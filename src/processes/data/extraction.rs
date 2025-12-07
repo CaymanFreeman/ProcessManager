@@ -6,21 +6,25 @@ const UNKNOWN_USER: &str = "-";
 
 pub fn extract_processes_info(
     processes: &[&sysinfo::Process],
+    indentations: Vec<usize>,
     users: &sysinfo::Users,
     cpu_count: usize,
 ) -> Vec<data::ProcessInfo> {
     processes
         .iter()
-        .map(|process| extract_info(process, users, cpu_count))
+        .zip(indentations)
+        .map(|(process, child_depth)| extract_info(process, child_depth, users, cpu_count))
         .collect()
 }
 
 fn extract_info(
     process: &sysinfo::Process,
+    child_depth: usize,
     users: &sysinfo::Users,
     cpu_count: usize,
 ) -> data::ProcessInfo {
     data::ProcessInfo {
+        child_depth,
         id: extract_id(process),
         name: extract_name(process)
             .unwrap_or(UNKNOWN_PROCESS_NAME)

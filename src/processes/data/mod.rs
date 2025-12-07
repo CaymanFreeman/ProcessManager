@@ -1,5 +1,6 @@
 mod extraction;
 mod sorting;
+mod tree;
 
 use crate::app;
 use extraction::extract_processes_info;
@@ -9,8 +10,10 @@ pub use extraction::extract_path;
 pub use sorting::SortCategory;
 pub use sorting::SortDirection;
 pub use sorting::SortMethod;
+pub use tree::ProcessTree;
 
 pub struct ProcessInfo {
+    pub child_depth: usize,
     pub id: u32,
     pub name: String,
     pub user: String,
@@ -33,12 +36,23 @@ pub fn prepare_processes(app: &app::App) -> Vec<ProcessInfo> {
     let cpu_count = system.cpus().len();
 
     filter_thread_processes(user_input.show_thread_processes(), &mut processes);
-    let mut processes_info = extract_processes_info(&processes, &users, cpu_count);
-    filter_user_input(user_input.process_filter(), &mut processes_info);
-    if user_input.hierarchical_view() {
+
+    let mut processes_info = if user_input.hierarchical_view() {
+        let process_tree = ProcessTree::build(&processes);
+        let (processes, indentations) = process_tree.flattened();
+        extract_processes_info(&processes, indentations, &users, cpu_count)
     } else {
+        let mut processes_info = extract_processes_info(
+            &processes,
+            vec![0_usize; processes.len()],
+            &users,
+            cpu_count,
+        );
         user_input.sort_method().sort(&mut processes_info);
-    }
+        processes_info
+    };
+
+    filter_user_input(user_input.process_filter(), &mut processes_info);
 
     processes_info
 }

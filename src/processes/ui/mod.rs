@@ -20,6 +20,9 @@ const PAUSE_SYMBOL: &str = "⏸";
 const REFRESH_SYMBOL: &str = "⟳";
 const X_SYMBOL: &str = "X";
 
+const CHILD_POINT_SYMBOL: &str = "> ";
+const CHILD_SPACE_SYMBOL: &str = "     ";
+
 const BLANK_PROCESS_PATH: &str = "";
 const BLANK_PROCESS_NAME: &str = "";
 
@@ -244,17 +247,54 @@ fn update_table(app: &app::App, ui: &mut egui::Ui) {
         .column(large_column())
         .column(small_column())
         .header(HEADER_HEIGHT, |mut header_row| {
+            let sorting = !user_input.hierarchical_view();
             let sort_method = user_input.sort_method_mut();
             header_row.col(|ui| header_cell("Name", None, sort_method, ui));
-            header_row.col(|ui| header_cell("ID", Some(data::SortCategory::Id), sort_method, ui));
+            header_row.col(|ui| {
+                header_cell(
+                    "ID",
+                    if sorting {
+                        Some(data::SortCategory::Id)
+                    } else {
+                        None
+                    },
+                    sort_method,
+                    ui,
+                );
+            });
             header_row.col(|ui| header_cell("User", None, sort_method, ui));
-            header_row
-                .col(|ui| header_cell("Memory", Some(data::SortCategory::Memory), sort_method, ui));
-            header_row.col(|ui| header_cell("CPU", Some(data::SortCategory::Cpu), sort_method, ui));
+            header_row.col(|ui| {
+                header_cell(
+                    "Memory",
+                    if sorting {
+                        Some(data::SortCategory::Memory)
+                    } else {
+                        None
+                    },
+                    sort_method,
+                    ui,
+                );
+            });
+            header_row.col(|ui| {
+                header_cell(
+                    "CPU",
+                    if sorting {
+                        Some(data::SortCategory::Cpu)
+                    } else {
+                        None
+                    },
+                    sort_method,
+                    ui,
+                );
+            });
             header_row.col(|ui| {
                 header_cell(
                     "Disk Read",
-                    Some(data::SortCategory::DiskRead),
+                    if sorting {
+                        Some(data::SortCategory::DiskRead)
+                    } else {
+                        None
+                    },
                     sort_method,
                     ui,
                 );
@@ -262,21 +302,34 @@ fn update_table(app: &app::App, ui: &mut egui::Ui) {
             header_row.col(|ui| {
                 header_cell(
                     "Disk Write",
-                    Some(data::SortCategory::DiskWrite),
+                    if sorting {
+                        Some(data::SortCategory::DiskWrite)
+                    } else {
+                        None
+                    },
                     sort_method,
                     ui,
                 );
             });
             header_row.col(|ui| header_cell("Path", None, sort_method, ui));
-            header_row
-                .col(|ui| header_cell("Status", Some(data::SortCategory::Status), sort_method, ui));
+            header_row.col(|ui| header_cell("Status", None, sort_method, ui));
         })
         .body(|mut body_rows| {
             for process_info in processes_info {
                 body_rows.row(ROW_HEIGHT, |mut row| {
                     row.set_selected(user_input.selected_pid() == Some(process_info.id));
 
-                    row.col(|ui| body_cell(&process_info.name, ui));
+                    row.col(|ui| {
+                        let name = &mut process_info.name.clone();
+                        if process_info.child_depth > 0 {
+                            name.insert_str(0, CHILD_POINT_SYMBOL);
+                            name.insert_str(
+                                0,
+                                &CHILD_SPACE_SYMBOL.repeat(process_info.child_depth - 1),
+                            );
+                        }
+                        body_cell(name, ui);
+                    });
                     row.col(|ui| body_cell(process_info.id.to_string().as_str(), ui));
                     row.col(|ui| body_cell(&process_info.user, ui));
                     row.col(|ui| body_cell(format_bytes(process_info.memory).as_str(), ui));
