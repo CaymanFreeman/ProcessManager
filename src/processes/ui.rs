@@ -224,7 +224,7 @@ fn header_cell(
 
 fn body_cell(text: &str, ui: &mut egui::Ui) {
     ui.style_mut().interaction.selectable_labels = false;
-    ui.add(egui::Label::new(text).truncate());
+    ui.label(text);
 }
 
 fn format_bytes(bytes: u64) -> String {
@@ -242,11 +242,13 @@ fn update_table(app: &app::App, ui: &mut egui::Ui) {
         .striped(true)
         .column(
             egui_extras::Column::initial(FIRST_COLUMN_WIDTH)
+                .clip(true)
                 .range(COLUMN_WIDTH_RANGE)
                 .resizable(true),
         )
         .columns(
             egui_extras::Column::remainder()
+                .clip(true)
                 .range(COLUMN_WIDTH_RANGE)
                 .resizable(true),
             8,
