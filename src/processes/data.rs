@@ -78,8 +78,8 @@ pub struct ProcessInfo {
 }
 
 pub fn prepare_processes(app: &app::App) -> Vec<ProcessInfo> {
-    let system_lock = app.system();
-    let Ok(system) = system_lock.lock() else {
+    let (system, user_input) = (app.system(), app.user_input());
+    let (Ok(system), Ok(user_input)) = (system.lock(), user_input.read()) else {
         return Vec::new();
     };
 
@@ -87,30 +87,29 @@ pub fn prepare_processes(app: &app::App) -> Vec<ProcessInfo> {
     let users = sysinfo::Users::new_with_refreshed_list();
     let cpu_count = system.cpus().len();
 
-    filter_thread_processes(app, &mut processes);
+    filter_thread_processes(user_input.show_thread_processes(), &mut processes);
     let mut processes_info = extract_processes_info(&processes, &users, cpu_count);
-    filter_user_input(app, &mut processes_info);
-    sort_processes_info(app, &mut processes_info);
+    filter_user_input(user_input.process_filter(), &mut processes_info);
+    user_input.sort_method().sort(&mut processes_info);
 
     processes_info
 }
 
-fn filter_thread_processes(app: &app::App, processes: &mut Vec<&sysinfo::Process>) {
-    if !app.show_thread_processes() {
+fn filter_thread_processes(show_thread_processes: bool, processes: &mut Vec<&sysinfo::Process>) {
+    if !show_thread_processes {
         processes.retain(|process| process.thread_kind().is_none());
     }
 }
 
-fn filter_user_input(app: &app::App, processes_info: &mut Vec<ProcessInfo>) {
-    if app.process_filter().is_empty() {
+fn filter_user_input(process_filter: &str, processes_info: &mut Vec<ProcessInfo>) {
+    if process_filter.is_empty() {
         return;
     }
 
     processes_info.retain(|process_info| {
-        let filter = app.process_filter();
-        process_info.name.contains(filter)
-            || process_info.user.contains(filter)
-            || process_info.path.contains(filter)
+        process_info.name.contains(process_filter)
+            || process_info.user.contains(process_filter)
+            || process_info.path.contains(process_filter)
     });
 }
 
@@ -123,10 +122,6 @@ fn extract_processes_info(
         .iter()
         .map(|process| extract_info(process, users, cpu_count))
         .collect()
-}
-
-fn sort_processes_info(app: &app::App, processes_info: &mut [ProcessInfo]) {
-    app.sort_method().sort(processes_info);
 }
 
 fn extract_info(

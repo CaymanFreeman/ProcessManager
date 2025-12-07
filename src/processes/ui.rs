@@ -1,5 +1,5 @@
-use crate::app;
-use crate::processes::data;
+use crate::{app, processes};
+use processes::data;
 use std::ops::RangeInclusive;
 
 const HEADER_TEXT_SIZE: f32 = 12.0;
@@ -16,6 +16,39 @@ const BLANK_PROCESS_NAME: &str = "";
 const ASCENDING_SYMBOL: &str = "⏶";
 const DESCENDING_SYMBOL: &str = "⏷";
 
+#[derive(serde::Deserialize, serde::Serialize, Default)]
+pub struct UserInput {
+    show_thread_processes: bool,
+    process_filter: String,
+    sort_method: processes::SortMethod,
+}
+
+impl UserInput {
+    pub(crate) fn process_filter(&self) -> &str {
+        &self.process_filter
+    }
+
+    pub(crate) fn process_filter_mut(&mut self) -> &mut String {
+        &mut self.process_filter
+    }
+
+    pub(crate) fn show_thread_processes(&self) -> bool {
+        self.show_thread_processes
+    }
+
+    pub(crate) fn show_thread_processes_mut(&mut self) -> &mut bool {
+        &mut self.show_thread_processes
+    }
+
+    pub(crate) fn sort_method(&self) -> &processes::SortMethod {
+        &self.sort_method
+    }
+
+    pub(crate) fn sort_method_mut(&mut self) -> &mut processes::SortMethod {
+        &mut self.sort_method
+    }
+}
+
 pub fn update(app: &mut app::App, ctx: &egui::Context) {
     egui::TopBottomPanel::top("options_bar").show(ctx, |ui| {
         update_options_panel(app, ui);
@@ -30,13 +63,17 @@ pub fn update(app: &mut app::App, ctx: &egui::Context) {
     });
 }
 
-fn update_options_panel(app: &mut app::App, ui: &mut egui::Ui) {
+fn update_options_panel(app: &app::App, ui: &mut egui::Ui) {
+    let user_input = app.user_input();
+    let Ok(mut user_input) = user_input.write() else {
+        return;
+    };
     ui.horizontal(|ui| {
         ui.add(
-            egui::TextEdit::singleline(app.process_filter_mut())
+            egui::TextEdit::singleline(user_input.process_filter_mut())
                 .hint_text("Filter by name, user, or path"),
         );
-        ui.checkbox(app.show_thread_processes_mut(), "Threads");
+        ui.checkbox(user_input.show_thread_processes_mut(), "Threads");
     });
 }
 
@@ -50,8 +87,8 @@ fn control_button(text: impl Into<String>, ui: &mut egui::Ui) -> egui::Response 
 }
 
 fn update_control_bar(app: &app::App, ctx: &egui::Context, ui: &mut egui::Ui) {
-    let system_lock = app.system();
-    let (Some(pid), Ok(system)) = (app.selected_pid(), system_lock.lock()) else {
+    let system = app.system();
+    let (Some(pid), Ok(system)) = (app.selected_pid(), system.lock()) else {
         return;
     };
 
@@ -162,6 +199,11 @@ fn format_bytes(bytes: u64) -> String {
 
 fn update_table(app: &mut app::App, ui: &mut egui::Ui) {
     let processes_info = data::prepare_processes(app);
+    let user_input = app.user_input();
+    let Ok(mut user_input) = user_input.write() else {
+        return;
+    };
+
     egui_extras::TableBuilder::new(ui)
         .striped(true)
         .columns(
@@ -171,7 +213,7 @@ fn update_table(app: &mut app::App, ui: &mut egui::Ui) {
             9,
         )
         .header(HEADER_HEIGHT, |mut header_row| {
-            let sort_method = app.sort_method_mut();
+            let sort_method = user_input.sort_method_mut();
             header_row
                 .col(|ui| header_cell("Name", Some(data::SortCategory::Name), sort_method, ui));
             header_row.col(|ui| header_cell("ID", Some(data::SortCategory::Id), sort_method, ui));
@@ -201,7 +243,7 @@ fn update_table(app: &mut app::App, ui: &mut egui::Ui) {
                 .col(|ui| header_cell("Status", Some(data::SortCategory::Status), sort_method, ui));
         })
         .body(|mut body_rows| {
-            for process_info in &processes_info {
+            for process_info in processes_info {
                 body_rows.row(ROW_HEIGHT, |mut row| {
                     row.set_selected(app.selected_pid() == Some(process_info.id));
 

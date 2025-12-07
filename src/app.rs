@@ -1,5 +1,5 @@
 use crate::processes;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 use std::time::Duration;
 
@@ -14,21 +14,15 @@ pub struct App {
     #[serde(skip)]
     selected_pid: Option<u32>,
 
-    #[serde(skip)]
-    process_filter: String,
-
-    show_thread_processes: bool,
-    sort_method: processes::SortMethod,
+    user_input: Arc<RwLock<processes::UserInput>>,
 }
 
 impl Default for App {
     fn default() -> Self {
         Self {
             system: Arc::new(Mutex::new(sysinfo::System::new_all())),
+            user_input: Arc::new(RwLock::new(processes::UserInput::default())),
             selected_pid: None,
-            process_filter: String::new(),
-            show_thread_processes: false,
-            sort_method: processes::SortMethod::default(),
         }
     }
 }
@@ -56,40 +50,21 @@ impl App {
         self.selected_pid = pid;
     }
 
-    pub(crate) fn process_filter(&self) -> &str {
-        &self.process_filter
-    }
-
-    pub(crate) fn process_filter_mut(&mut self) -> &mut String {
-        &mut self.process_filter
-    }
-
-    pub(crate) fn show_thread_processes(&self) -> bool {
-        self.show_thread_processes
-    }
-
-    pub(crate) fn show_thread_processes_mut(&mut self) -> &mut bool {
-        &mut self.show_thread_processes
-    }
-
-    pub(crate) fn sort_method(&self) -> &processes::SortMethod {
-        &self.sort_method
-    }
-
-    pub(crate) fn sort_method_mut(&mut self) -> &mut processes::SortMethod {
-        &mut self.sort_method
-    }
-
     pub(crate) fn system(&self) -> Arc<Mutex<sysinfo::System>> {
         self.system.clone()
+    }
+
+    pub(crate) fn user_input(&self) -> Arc<RwLock<processes::UserInput>> {
+        self.user_input.clone()
     }
 
     fn system_refresh_loop(system: &Arc<Mutex<sysinfo::System>>, ctx: &egui::Context) -> ! {
         loop {
             thread::sleep(SYSTEM_REFRESH_INTERVAL);
-            if let Ok(mut sys) = system.lock() {
-                sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
-            }
+            let Ok(mut system) = system.lock() else {
+                continue;
+            };
+            system.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
             ctx.request_repaint();
         }
     }
