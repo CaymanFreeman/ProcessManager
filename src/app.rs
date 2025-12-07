@@ -60,12 +60,12 @@ impl App {
 
     fn system_refresh_loop(system: &Arc<RwLock<sysinfo::System>>, ctx: &egui::Context) -> ! {
         loop {
-            thread::sleep(SYSTEM_REFRESH_INTERVAL);
             let Ok(mut system) = system.write() else {
                 continue;
             };
             system.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
             ctx.request_repaint();
+            thread::sleep(SYSTEM_REFRESH_INTERVAL);
         }
     }
 }
