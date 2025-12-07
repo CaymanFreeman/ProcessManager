@@ -11,6 +11,8 @@ const CONTROL_BUTTON_SIZE: [f32; 2] = [50.0, 25.0];
 const FIRST_COLUMN_WIDTH: f32 = 200.0;
 const COLUMN_WIDTH_RANGE: RangeInclusive<f32> = 90.0..=500.0;
 
+const CLIPBOARD_SYMBOL: &str = "📋";
+
 const BLANK_PROCESS_PATH: &str = "";
 const BLANK_PROCESS_NAME: &str = "";
 
@@ -115,46 +117,46 @@ fn update_control_bar(app: &app::App, ctx: &egui::Context, ui: &mut egui::Ui) {
         return;
     };
 
-    ui.vertical(|ui| {
-        ui.horizontal(|ui| {
-            ui.label(format!(
-                "{} ({})",
-                data::extract_name(process)
-                    .unwrap_or(BLANK_PROCESS_NAME)
-                    .to_owned(),
-                selected_pid
-            ));
-        });
-        ui.horizontal_centered(|ui| {
-            if control_button("Terminate", ui).clicked() {
-                process.kill_with(sysinfo::Signal::Term);
-            }
-
-            if control_button("Kill", ui).clicked() {
-                process.kill_with(sysinfo::Signal::Kill);
-            }
-
-            if control_button("Copy Path", ui).clicked() {
-                ctx.copy_text(
-                    data::extract_path(process)
-                        .unwrap_or(BLANK_PROCESS_PATH)
-                        .to_owned(),
-                );
-            }
-
-            if control_button("Copy Name", ui).clicked() {
+    ui.horizontal(|ui| {
+        if let Some(name) = data::extract_name(process) {
+            ui.label(name);
+            if ui.button(CLIPBOARD_SYMBOL).clicked() {
                 ctx.copy_text(
                     data::extract_name(process)
                         .unwrap_or(BLANK_PROCESS_NAME)
                         .to_owned(),
                 );
             }
-
-            if control_button("Copy PID", ui).clicked() {
-                ctx.copy_text(selected_pid.to_string());
+            ui.separator();
+        }
+        ui.label(selected_pid.to_string());
+        if ui.button(CLIPBOARD_SYMBOL).clicked() {
+            ctx.copy_text(selected_pid.to_string());
+        }
+        ui.separator();
+        if let Some(path) = data::extract_path(process) {
+            ui.label(path);
+            if ui.button(CLIPBOARD_SYMBOL).clicked() {
+                ctx.copy_text(
+                    data::extract_path(process)
+                        .unwrap_or(BLANK_PROCESS_PATH)
+                        .to_owned(),
+                );
             }
-        });
+            ui.separator();
+        }
     });
+    ui.separator();
+    ui.horizontal(|ui| {
+        if control_button("Terminate", ui).clicked() {
+            process.kill_with(sysinfo::Signal::Term);
+        }
+
+        if control_button("Kill", ui).clicked() {
+            process.kill_with(sysinfo::Signal::Kill);
+        }
+    });
+    ui.separator();
 }
 
 fn header_name_label(text: &str, ui: &mut egui::Ui) {
