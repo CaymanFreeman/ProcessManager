@@ -31,8 +31,9 @@ impl App {
         };
 
         let system = app.system.clone();
+        let user_input = app.user_input.clone();
         let ctx = cc.egui_ctx.clone();
-        thread::spawn(move || Self::system_refresh_loop(&system, &ctx));
+        thread::spawn(move || Self::system_refresh_loop(&system, &user_input, &ctx));
 
         app
     }
@@ -45,13 +46,27 @@ impl App {
         self.user_input.clone()
     }
 
-    fn system_refresh_loop(system: &Arc<RwLock<sysinfo::System>>, ctx: &egui::Context) -> ! {
+    fn system_refresh_loop(
+        system: &Arc<RwLock<sysinfo::System>>,
+        user_input: &Arc<RwLock<processes::UserInput>>,
+        ctx: &egui::Context,
+    ) -> ! {
         loop {
+            let Ok(user_input) = user_input.read() else {
+                continue;
+            };
+
+            if !user_input.continue_refreshing() {
+                continue;
+            }
+
+            drop(user_input); // The UI will use this lock to repaint
+
             if let Ok(mut system) = system.write() {
                 system.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
             }
-
             ctx.request_repaint();
+
             thread::sleep(SYSTEM_REFRESH_INTERVAL);
         }
     }

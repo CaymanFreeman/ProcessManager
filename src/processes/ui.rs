@@ -11,6 +11,9 @@ const SMALL_COLUMNS_WIDTH: f32 = 65.0;
 const COLUMN_WIDTH_RANGE: RangeInclusive<f32> = 65.0..=500.0;
 
 const CLIPBOARD_SYMBOL: &str = "📋";
+const PLAY_SYMBOL: &str = "▶";
+const PAUSE_SYMBOL: &str = "⏸";
+const REFRESH_SYMBOL: &str = "⟳";
 
 const BLANK_PROCESS_PATH: &str = "";
 const BLANK_PROCESS_NAME: &str = "";
@@ -18,7 +21,7 @@ const BLANK_PROCESS_NAME: &str = "";
 const ASCENDING_SYMBOL: &str = "⏶";
 const DESCENDING_SYMBOL: &str = "⏷";
 
-#[derive(serde::Deserialize, serde::Serialize, Default)]
+#[derive(serde::Deserialize, serde::Serialize)]
 pub struct UserInput {
     #[serde(skip)]
     selected_pid: Option<u32>,
@@ -26,6 +29,19 @@ pub struct UserInput {
     show_thread_processes: bool,
     process_filter: String,
     sort_method: processes::SortMethod,
+    continue_refreshing: bool,
+}
+
+impl Default for UserInput {
+    fn default() -> Self {
+        Self {
+            selected_pid: None,
+            show_thread_processes: false,
+            process_filter: String::new(),
+            sort_method: Default::default(),
+            continue_refreshing: true,
+        }
+    }
 }
 
 impl UserInput {
@@ -60,6 +76,14 @@ impl UserInput {
     pub(crate) fn sort_method_mut(&mut self) -> &mut processes::SortMethod {
         &mut self.sort_method
     }
+
+    pub(crate) fn continue_refreshing(&self) -> bool {
+        self.continue_refreshing
+    }
+
+    pub(crate) fn set_continue_refreshing(&mut self, continue_refreshing: bool) {
+        self.continue_refreshing = continue_refreshing;
+    }
 }
 
 pub fn update(app: &app::App, ctx: &egui::Context) {
@@ -77,16 +101,36 @@ pub fn update(app: &app::App, ctx: &egui::Context) {
 }
 
 fn update_options_panel(app: &app::App, ui: &mut egui::Ui) {
-    let user_input = app.user_input();
+    let (system, user_input) = (app.system(), app.user_input());
     let Ok(mut user_input) = user_input.write() else {
         return;
     };
     ui.horizontal(|ui| {
+        if ui.button(PLAY_SYMBOL).clicked() {
+            user_input.set_continue_refreshing(true);
+        }
+
+        if ui.button(PAUSE_SYMBOL).clicked() {
+            user_input.set_continue_refreshing(false);
+        }
+
+        if ui.button(REFRESH_SYMBOL).clicked() {
+            if let Ok(mut system) = system.write() {
+                system.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
+            }
+            ui.ctx().request_repaint();
+        }
+
+        ui.separator();
+
         ui.add(
             egui::TextEdit::singleline(user_input.process_filter_mut())
                 .hint_text("Filter by name, user, or path"),
         );
-        ui.checkbox(user_input.show_thread_processes_mut(), "Threads");
+
+        ui.separator();
+
+        ui.checkbox(user_input.show_thread_processes_mut(), "Include Threads");
     });
 }
 
@@ -112,7 +156,7 @@ fn update_control_bar(app: &app::App, ctx: &egui::Context, ui: &mut egui::Ui) {
             process.kill_with(sysinfo::Signal::Term);
         }
 
-        ui.separator();
+        //ui.separator();
 
         if ui.button("Kill").clicked() {
             process.kill_with(sysinfo::Signal::Kill);
