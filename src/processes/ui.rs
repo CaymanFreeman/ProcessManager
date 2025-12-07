@@ -207,6 +207,10 @@ fn header_cell(
         });
     }
 
+    if ui.response().hovered() {
+        ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+    }
+
     if response_primary_clicked(&ui.response()) {
         if current_sort_method.category == sort_category {
             current_sort_method.toggle_direction();
