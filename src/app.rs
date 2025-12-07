@@ -52,20 +52,17 @@ impl App {
         ctx: &egui::Context,
     ) -> ! {
         loop {
-            let Ok(user_input) = user_input.read() else {
-                continue;
-            };
+            let should_refresh = user_input
+                .read()
+                .map(|user_input| user_input.continue_refreshing())
+                .unwrap_or(false);
 
-            if !user_input.continue_refreshing() {
-                continue;
+            if should_refresh {
+                if let Ok(mut system) = system.write() {
+                    system.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
+                }
+                ctx.request_repaint();
             }
-
-            drop(user_input); // The UI will use this lock to repaint
-
-            if let Ok(mut system) = system.write() {
-                system.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
-            }
-            ctx.request_repaint();
 
             thread::sleep(SYSTEM_REFRESH_INTERVAL);
         }
