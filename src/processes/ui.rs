@@ -8,6 +8,7 @@ const ROW_HEIGHT: f32 = 18.0;
 const CONTROL_PANEL_MIN_HEIGHT: f32 = 40.0;
 const CONTROL_BUTTON_TEXT_SIZE: f32 = 16.0;
 const CONTROL_BUTTON_SIZE: [f32; 2] = [50.0, 25.0];
+const FIRST_COLUMN_WIDTH: f32 = 200.0;
 const COLUMN_WIDTH_RANGE: RangeInclusive<f32> = 90.0..=500.0;
 
 const BLANK_PROCESS_PATH: &str = "";
@@ -239,11 +240,16 @@ fn update_table(app: &app::App, ui: &mut egui::Ui) {
 
     egui_extras::TableBuilder::new(ui)
         .striped(true)
+        .column(
+            egui_extras::Column::initial(FIRST_COLUMN_WIDTH)
+                .range(COLUMN_WIDTH_RANGE)
+                .resizable(true),
+        )
         .columns(
             egui_extras::Column::remainder()
                 .range(COLUMN_WIDTH_RANGE)
                 .resizable(true),
-            9,
+            8,
         )
         .header(HEADER_HEIGHT, |mut header_row| {
             let sort_method = user_input.sort_method_mut();
