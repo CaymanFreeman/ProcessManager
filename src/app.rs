@@ -60,11 +60,9 @@ impl App {
 
     fn system_refresh_loop(system: &Arc<RwLock<sysinfo::System>>, ctx: &egui::Context) -> ! {
         loop {
-            let Ok(mut system) = system.write() else {
-                continue;
-            };
-            system.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
-            drop(system); // Dropping to let the UI use the lock, preventing deadlock
+            if let Ok(mut system) = system.write() {
+                system.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
+            }
 
             ctx.request_repaint();
             thread::sleep(SYSTEM_REFRESH_INTERVAL);
