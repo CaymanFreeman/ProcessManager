@@ -172,11 +172,14 @@ fn response_primary_clicked(response: &egui::Response) -> bool {
 
 fn header_cell(
     text: &str,
-    header_category: Option<data::SortCategory>,
+    mut header_category: Option<data::SortCategory>,
+    sorting: bool,
     current_sort_method: &mut data::SortMethod,
     ui: &mut egui::Ui,
 ) {
     ui.style_mut().interaction.selectable_labels = false;
+
+    header_category = if sorting { header_category } else { None };
 
     let Some(sort_category) = header_category else {
         ui.horizontal_centered(|ui| {
@@ -249,28 +252,16 @@ fn update_table(app: &app::App, ui: &mut egui::Ui) {
         .header(HEADER_HEIGHT, |mut header_row| {
             let sorting = !user_input.hierarchical_view();
             let sort_method = user_input.sort_method_mut();
-            header_row.col(|ui| header_cell("Name", None, sort_method, ui));
+            header_row.col(|ui| header_cell("Name", None, sorting, sort_method, ui));
             header_row.col(|ui| {
-                header_cell(
-                    "ID",
-                    if sorting {
-                        Some(data::SortCategory::Id)
-                    } else {
-                        None
-                    },
-                    sort_method,
-                    ui,
-                );
+                header_cell("ID", Some(data::SortCategory::Id), sorting, sort_method, ui);
             });
-            header_row.col(|ui| header_cell("User", None, sort_method, ui));
+            header_row.col(|ui| header_cell("User", None, sorting, sort_method, ui));
             header_row.col(|ui| {
                 header_cell(
                     "Memory",
-                    if sorting {
-                        Some(data::SortCategory::Memory)
-                    } else {
-                        None
-                    },
+                    Some(data::SortCategory::Memory),
+                    sorting,
                     sort_method,
                     ui,
                 );
@@ -278,11 +269,8 @@ fn update_table(app: &app::App, ui: &mut egui::Ui) {
             header_row.col(|ui| {
                 header_cell(
                     "CPU",
-                    if sorting {
-                        Some(data::SortCategory::Cpu)
-                    } else {
-                        None
-                    },
+                    Some(data::SortCategory::Cpu),
+                    sorting,
                     sort_method,
                     ui,
                 );
@@ -290,11 +278,8 @@ fn update_table(app: &app::App, ui: &mut egui::Ui) {
             header_row.col(|ui| {
                 header_cell(
                     "Disk Read",
-                    if sorting {
-                        Some(data::SortCategory::DiskRead)
-                    } else {
-                        None
-                    },
+                    Some(data::SortCategory::DiskRead),
+                    sorting,
                     sort_method,
                     ui,
                 );
@@ -302,17 +287,14 @@ fn update_table(app: &app::App, ui: &mut egui::Ui) {
             header_row.col(|ui| {
                 header_cell(
                     "Disk Write",
-                    if sorting {
-                        Some(data::SortCategory::DiskWrite)
-                    } else {
-                        None
-                    },
+                    Some(data::SortCategory::DiskWrite),
+                    sorting,
                     sort_method,
                     ui,
                 );
             });
-            header_row.col(|ui| header_cell("Path", None, sort_method, ui));
-            header_row.col(|ui| header_cell("Status", None, sort_method, ui));
+            header_row.col(|ui| header_cell("Path", None, sorting, sort_method, ui));
+            header_row.col(|ui| header_cell("Status", None, sorting, sort_method, ui));
         })
         .body(|mut body_rows| {
             for process_info in processes_info {
