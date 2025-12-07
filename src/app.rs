@@ -64,6 +64,8 @@ impl App {
                 continue;
             };
             system.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
+            drop(system); // Dropping to let the UI use the lock, preventing deadlock
+
             ctx.request_repaint();
             thread::sleep(SYSTEM_REFRESH_INTERVAL);
         }
