@@ -5,9 +5,7 @@ use std::ops::RangeInclusive;
 const HEADER_TEXT_SIZE: f32 = 12.0;
 const HEADER_HEIGHT: f32 = 25.0;
 const ROW_HEIGHT: f32 = 18.0;
-const CONTROL_PANEL_MIN_HEIGHT: f32 = 40.0;
-const CONTROL_BUTTON_TEXT_SIZE: f32 = 16.0;
-const CONTROL_BUTTON_SIZE: [f32; 2] = [50.0, 25.0];
+const CONTROL_PANEL_HEIGHT: f32 = 30.0;
 const LARGE_COLUMN_WIDTH: f32 = 250.0;
 const SMALL_COLUMNS_WIDTH: f32 = 65.0;
 const COLUMN_WIDTH_RANGE: RangeInclusive<f32> = 65.0..=500.0;
@@ -69,7 +67,7 @@ pub fn update(app: &app::App, ctx: &egui::Context) {
         update_options_panel(app, ui);
     });
     egui::TopBottomPanel::bottom("control_bar")
-        .min_height(CONTROL_PANEL_MIN_HEIGHT)
+        .exact_height(CONTROL_PANEL_HEIGHT)
         .show(ctx, |ui| {
             update_control_bar(app, ctx, ui);
         });
@@ -92,15 +90,6 @@ fn update_options_panel(app: &app::App, ui: &mut egui::Ui) {
     });
 }
 
-fn control_button(text: impl Into<String>, ui: &mut egui::Ui) -> egui::Response {
-    ui.add(
-        egui::Button::new(
-            egui::RichText::new(text).font(egui::FontId::proportional(CONTROL_BUTTON_TEXT_SIZE)),
-        )
-        .min_size(egui::Vec2::from(CONTROL_BUTTON_SIZE)),
-    )
-}
-
 fn update_control_bar(app: &app::App, ctx: &egui::Context, ui: &mut egui::Ui) {
     let (system, user_input) = (app.system(), app.user_input());
     let (Ok(system), Ok(user_input)) = (system.read(), user_input.read()) else {
@@ -118,9 +107,20 @@ fn update_control_bar(app: &app::App, ctx: &egui::Context, ui: &mut egui::Ui) {
         return;
     };
 
-    ui.horizontal(|ui| {
+    ui.horizontal_centered(|ui| {
+        if ui.button("Terminate").clicked() {
+            process.kill_with(sysinfo::Signal::Term);
+        }
+
+        ui.separator();
+
+        if ui.button("Kill").clicked() {
+            process.kill_with(sysinfo::Signal::Kill);
+        }
+
+        ui.separator();
+
         if let Some(name) = data::extract_name(process) {
-            ui.label(name);
             if ui.button(CLIPBOARD_SYMBOL).clicked() {
                 ctx.copy_text(
                     data::extract_name(process)
@@ -128,15 +128,18 @@ fn update_control_bar(app: &app::App, ctx: &egui::Context, ui: &mut egui::Ui) {
                         .to_owned(),
                 );
             }
+            ui.label(name);
             ui.separator();
         }
-        ui.label(selected_pid.to_string());
+
         if ui.button(CLIPBOARD_SYMBOL).clicked() {
             ctx.copy_text(selected_pid.to_string());
         }
+        ui.label(selected_pid.to_string());
+
         ui.separator();
+
         if let Some(path) = data::extract_path(process) {
-            ui.label(path);
             if ui.button(CLIPBOARD_SYMBOL).clicked() {
                 ctx.copy_text(
                     data::extract_path(process)
@@ -144,19 +147,11 @@ fn update_control_bar(app: &app::App, ctx: &egui::Context, ui: &mut egui::Ui) {
                         .to_owned(),
                 );
             }
+            ui.label(path);
             ui.separator();
         }
     });
-    ui.separator();
-    ui.horizontal(|ui| {
-        if control_button("Terminate", ui).clicked() {
-            process.kill_with(sysinfo::Signal::Term);
-        }
 
-        if control_button("Kill", ui).clicked() {
-            process.kill_with(sysinfo::Signal::Kill);
-        }
-    });
     ui.separator();
 }
 
