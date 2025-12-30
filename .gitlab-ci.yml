@@ -1,0 +1,45 @@
+image: "rust:latest"
+
+workflow:
+  rules:
+    - changes:
+        - "src/**/*"
+    - when: never
+
+variables:
+    CARGO_TERM_COLOR: always
+    RUSTFLAGS: "-D warnings"
+    RUSTDOCFLAGS: "-D warnings"
+
+stages:
+    - debug
+    - static
+    - test
+
+version:
+    stage: debug
+    script:
+        - rustc --version
+        - cargo --version
+        - cargo fmt --version
+        - cargo clippy --version
+
+check:
+    stage: static
+    script:
+        - cargo check --all-features --verbose
+
+format:
+    stage: static
+    script:
+        - cargo fmt --all -- --check
+
+clippy:
+    stage: static
+    script:
+        - cargo clippy --verbose
+
+test:
+    stage: test
+    script:
+        - cargo test --workspace --verbose
