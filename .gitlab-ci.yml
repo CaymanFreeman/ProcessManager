@@ -1,5 +1,8 @@
 image: "rust:latest"
 
+include:
+  - local: '.gitlab-cd.yml'
+
 workflow:
   rules:
     - changes:
