@@ -1,51 +1,26 @@
-image: "rust:latest"
-
-include:
-  - local: '.gitlab-cd.yml'
-
 workflow:
-  rules:
-    - changes:
-        - "src/**/*"
-    - when: never
-
-variables:
-    CARGO_TERM_COLOR: always
-    RUSTFLAGS: "-D warnings"
-    RUSTDOCFLAGS: "-D warnings"
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "web"'
+          when: manual
+        - when: never
 
 stages:
-    - debug
-    - static
-    - test
     - metadata
     - build
     - release
 
-version:
-    stage: debug
-    script:
-        - rustc --version
-        - cargo --version
-        - cargo fmt --version
-        - cargo clippy --version
+parse-metadata:
+    stage: metadata
+    script: []
 
-check:
-    stage: static
-    script:
-        - cargo check --all-features --verbose
+build-binaries:
+    stage: build
+    script: []
 
-format:
-    stage: static
-    script:
-        - cargo fmt --all -- --check
+upload-binaries:
+    stage: release
+    script: []
 
-clippy:
-    stage: static
-    script:
-        - cargo clippy --verbose
-
-test:
-    stage: test
-    script:
-        - cargo test --workspace --verbose
+create-release:
+    stage: release
+    script: []
