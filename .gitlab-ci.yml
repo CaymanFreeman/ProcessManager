@@ -1,13 +1,12 @@
 image: "rust:latest"
 
-include:
-  - local: '.gitlab-cd.yml'
-
 workflow:
-  rules:
-    - changes:
-        - "src/**/*"
-    - when: never
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "web"'
+          when: always
+        - changes:
+              - "src/**/*"
+        - when: never
 
 variables:
     CARGO_TERM_COLOR: always
@@ -18,8 +17,11 @@ stages:
     - debug
     - static
     - test
+    - metadata
+    - build
+    - release
 
-version:
+show-versions:
     stage: debug
     script:
         - rustc --version
@@ -27,22 +29,54 @@ version:
         - cargo fmt --version
         - cargo clippy --version
 
-check:
+cargo-check:
     stage: static
     script:
         - cargo check --all-features --verbose
 
-format:
+cargo-fmt:
     stage: static
     script:
         - cargo fmt --all -- --check
 
-clippy:
+cargo-clippy:
     stage: static
     script:
         - cargo clippy --verbose
 
-test:
+cargo-test:
     stage: test
     script:
         - cargo test --workspace --verbose
+
+parse-metadata:
+    rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - when: never
+    stage: metadata
+    script:
+        - echo "metadata"
+
+build-binaries:
+    rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - when: never
+    stage: build
+    script:
+        - echo "build-binaries"
+
+upload-binaries:
+    rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - when: never
+    stage: release
+    script:
+        - echo "upload-binaries"
+
+create-release:
+    rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - when: never
+    stage: release
+    script:
+        - echo "create-release"
