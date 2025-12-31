@@ -27,12 +27,10 @@ show-versions:
         - rustc --version
         - cargo --version
         - rustup --version
-        - rustup component list
 
 cargo-check:
     stage: static
     script:
-        - rustup component add rustfmt clippy
         - cargo check --all-features --verbose --release
 
 cargo-fmt:
@@ -50,7 +48,6 @@ cargo-clippy:
 cargo-test:
     stage: test
     script:
-        - rustup component add clippy rustfmt
         - cargo test --workspace --all-features --verbose --release
 
 parse-metadata:
@@ -59,28 +56,90 @@ parse-metadata:
         - if: '$CI_PIPELINE_SOURCE == "web"'
         - when: never
     script:
-        - echo "metadata"
+        - CRATE_NAME=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].name')
+        - CRATE_VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
+        - echo "$CRATE_NAME" > crate_name.txt
+        - echo "$CRATE_VERSION" > crate_version.txt
+    artifacts:
+        paths:
+            - crate_name.txt
+            - crate_version.txt
 
 build-binaries:
     stage: build
     rules:
         - if: '$CI_PIPELINE_SOURCE == "web"'
         - when: never
+    needs:
+        - parse-metadata
+    image: rust:latest
     script:
-        - echo "build-binaries (release mode)"
+        - CRATE_NAME=$(cat crate_name.txt)
+        - CRATE_VERSION=$(cat crate_version.txt)
+        - |
+          TARGETS=(
+            "x86_64-apple-darwin"
+            "aarch64-apple-darwin"
+            "x86_64-unknown-linux-gnu"
+            "aarch64-unknown-linux-gnu"
+            "x86_64-pc-windows-msvc"
+          )
 
-upload-binaries:
-    stage: release
-    rules:
-        - if: '$CI_PIPELINE_SOURCE == "web"'
-        - when: never
-    script:
-        - echo "upload-binaries"
+          mkdir dist
+
+          for TARGET in "${TARGETS[@]}"; do
+              rustup target add "$TARGET"
+              cargo build --release --target "$TARGET"
+
+              if [[ "$TARGET" == *"windows"* ]]; then
+                  zip "dist/${CRATE_NAME}-${CRATE_VERSION}-${TARGET}.zip" \
+                      "target/${TARGET}/release/${CRATE_NAME}.exe"
+              else
+                  tar -czf "dist/${CRATE_NAME}-${CRATE_VERSION}-${TARGET}.tar.gz" \
+                      -C "target/${TARGET}/release" "${CRATE_NAME}"
+              fi
+          done
+    artifacts:
+        paths:
+            - dist/
+            - crate_name.txt
+            - crate_version.txt
 
 create-release:
     stage: release
     rules:
         - if: '$CI_PIPELINE_SOURCE == "web"'
         - when: never
+    needs:
+        - build-binaries
     script:
-        - echo "create-release"
+        - CRATE_NAME=$(cat crate_name.txt)
+        - CRATE_VERSION=$(cat crate_version.txt)
+        - |
+          curl --request POST \
+            --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data "{
+              \"name\": \"Release v${CRATE_VERSION}\",
+              \"tag_name\": \"v${CRATE_VERSION}\",
+              \"description\": \"Automated release for ${CRATE_NAME} v${CRATE_VERSION}\"
+            }" \
+            "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/releases"
+
+          for file in dist/*; do
+              BASENAME=$(basename "$file")
+              URL=$(curl --request POST \
+                --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+                --form "file=@${file}" \
+                "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/uploads" \
+                | jq -r '.url')
+
+              curl --request POST \
+                --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+                --header "Content-Type: application/json" \
+                --data "{
+                  \"name\": \"${BASENAME}\",
+                  \"url\": \"${CI_PROJECT_URL}${URL}\"
+                }" \
+                "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/releases/v${CRATE_VERSION}/assets/links"
+          done
