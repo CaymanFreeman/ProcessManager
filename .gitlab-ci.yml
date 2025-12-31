@@ -26,57 +26,61 @@ show-versions:
     script:
         - rustc --version
         - cargo --version
-        - cargo fmt --version
-        - cargo clippy --version
+        - rustup --version
+        - rustup component list
 
 cargo-check:
     stage: static
     script:
-        - cargo check --all-features --verbose
+        - rustup component add rustfmt clippy
+        - cargo check --all-features --verbose --release
 
 cargo-fmt:
     stage: static
     script:
+        - rustup component add rustfmt
         - cargo fmt --all -- --check
 
 cargo-clippy:
     stage: static
     script:
-        - cargo clippy --verbose
+        - rustup component add clippy
+        - cargo clippy --all-features --verbose --release
 
 cargo-test:
     stage: test
     script:
-        - cargo test --workspace --verbose
+        - rustup component add clippy rustfmt
+        - cargo test --workspace --all-features --verbose --release
 
 parse-metadata:
-    rules:
-    - if: '$CI_PIPELINE_SOURCE == "web"'
-    - when: never
     stage: metadata
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "web"'
+        - when: never
     script:
         - echo "metadata"
 
 build-binaries:
-    rules:
-    - if: '$CI_PIPELINE_SOURCE == "web"'
-    - when: never
     stage: build
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "web"'
+        - when: never
     script:
-        - echo "build-binaries"
+        - echo "build-binaries (release mode)"
 
 upload-binaries:
-    rules:
-    - if: '$CI_PIPELINE_SOURCE == "web"'
-    - when: never
     stage: release
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "web"'
+        - when: never
     script:
         - echo "upload-binaries"
 
 create-release:
-    rules:
-    - if: '$CI_PIPELINE_SOURCE == "web"'
-    - when: never
     stage: release
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "web"'
+        - when: never
     script:
         - echo "create-release"
