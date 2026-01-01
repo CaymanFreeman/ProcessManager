@@ -18,16 +18,27 @@ cache:
     - .cargo/
     - target/
 
-include:
-  - template: Jobs/SAST.gitlab-ci.yml
-  - template: Jobs/Secret-Detection.gitlab-ci.yml
-
 stages:
+  - scan
   - debug
   - test
   - build
   - package
   - release
+
+include:
+  - template: Jobs/SAST.gitlab-ci.yml
+  - template: Jobs/Secret-Detection.gitlab-ci.yml
+  - template: Jobs/Dependency-Scanning.gitlab-ci.yml
+
+sast:
+  stage: scan
+
+secret_detection:
+  stage: scan
+
+gemnasium-dependency_scanning:
+  stage: scan
 
 .rust-linux-template:
   image: rust:slim
