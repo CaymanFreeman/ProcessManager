@@ -120,6 +120,7 @@ package-linux-x86:
     - prepare-metadata
     - build-linux-x86
   before_script:
+    - apt-get update && apt-get install -y dpkg-dev liblzma-dev
     - cargo install cargo-deb
     - set -x
   script:
