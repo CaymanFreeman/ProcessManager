@@ -11,6 +11,7 @@ variables:
   RUSTFLAGS: "-D warnings"
   RUSTDOCFLAGS: "-D warnings"
   CARGO_HOME: $CI_PROJECT_DIR/.cargo
+  DS_MAX_DEPTH: -1
 
 cache:
   key: "${CI_COMMIT_REF_SLUG}"
