@@ -117,7 +117,7 @@ package-linux:
     - parse-metadata
     - build-linux-x86
   before_script:
-    - apk add --no-cache tar gzip
+    - apk add --no-cache tar gzip glab
     - set -x
   script:
     - mkdir -p dist
@@ -156,7 +156,7 @@ create-release:
   needs:
     - prepare-release
     - parse-metadata
-    - package-linux
+    #- package-linux
   script:
     - DESCRIPTION=$(cat description.txt)
     - |
