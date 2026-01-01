@@ -101,9 +101,6 @@ build-linux-x86:
   stage: build
   needs:
     - parse-metadata
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "web"'
-    - when: never
   script:
     - cargo build --release
   artifacts:
