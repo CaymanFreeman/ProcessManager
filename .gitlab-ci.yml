@@ -128,7 +128,7 @@ package-linux:
     expire_in: 1 day
 
 create-release:
-  image: alpine:latest
+  image: alpine/git:latest
   stage: release
   needs:
     - parse-metadata
