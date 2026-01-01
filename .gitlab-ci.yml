@@ -1,168 +1,258 @@
-image: "rust:latest"
-
 workflow:
-    rules:
-        - if: '$CI_PIPELINE_SOURCE == "web"'
-          when: always
-        - changes:
-              - "src/**/*"
-        - when: never
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: always
+    - changes:
+        - "src/**/*"
+    - when: never
 
 variables:
-    CARGO_TERM_COLOR: always
-    RUSTFLAGS: "-D warnings"
-    RUSTDOCFLAGS: "-D warnings"
-    CARGO_HOME: $CI_PROJECT_DIR/.cargo
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+  RUSTDOCFLAGS: "-D warnings"
+  CARGO_HOME: $CI_PROJECT_DIR/.cargo
 
 cache:
-    key: "${CI_COMMIT_REF_SLUG}"
-    paths:
-        - .cargo/
-        - target/
+  key: "${CI_COMMIT_REF_SLUG}"
+  paths:
+    - .cargo/
+    - target/
+
+include:
+  - template: Jobs/SAST.gitlab-ci.yml
+  - template: Jobs/Secret-Detection.gitlab-ci.yml
 
 stages:
-    - debug
-    - static
-    - test
-    - metadata
-    - build
-    - release
+  - debug
+  - test
+  - build
+  - package
+  - release
+
+.rust-linux-template:
+  image: rust:slim
+  before_script:
+    - apt-get update && apt-get install -y libgtk-3-dev libxcb-shape0-dev libxcb-xfixes0-dev
+
+.rust-windows-template:
+  tags:
+    - saas-windows-medium-amd64
+  before_script:
+    - rustup update stable
+    - rustup default stable
+
+.rust-macos-template:
+  tags:
+    - saas-macos-medium-m1
+  image: macos-14-xcode-15
+  before_script:
+    - rustup update stable
+    - rustup default stable
 
 show-versions:
-    stage: debug
-    script:
-        - rustc --version
-        - cargo --version
-        - rustup --version
+  extends: .rust-linux-template
+  stage: debug
+  script:
+    - rustc --version
+    - cargo --version
+    - rustup --version
 
 cargo-check:
-    stage: static
-    script:
-        - cargo check --all-features --verbose --release
+  extends: .rust-linux-template
+  stage: test
+  script:
+    - cargo check --all-features --verbose --release
 
 cargo-fmt:
-    stage: static
-    script:
-        - rustup component add rustfmt
-        - cargo fmt --all -- --check
+  extends: .rust-linux-template
+  stage: test
+  script:
+    - rustup component add rustfmt
+    - cargo fmt --all -- --check
 
 cargo-clippy:
-    stage: static
-    script:
-        - rustup component add clippy
-        - cargo clippy --all-features --verbose --release
+  extends: .rust-linux-template
+  stage: test
+  script:
+    - rustup component add clippy
+    - cargo clippy --all-features --verbose --release
 
 cargo-test:
-    stage: test
-    script:
-        - cargo test --workspace --all-features --verbose --release
+  extends: .rust-linux-template
+  stage: test
+  script:
+    - cargo test --workspace --all-features --verbose --release
 
 parse-metadata:
-    stage: metadata
-    rules:
-        - if: '$CI_PIPELINE_SOURCE == "web"'
-        - when: never
-    script:
-        - cargo metadata --no-deps --format-version 1 > metadata.json
-        - CRATE_NAME=$(grep -oP '"name":\s*"\K[^"]+' metadata.json | head -n 1)
-        - CRATE_VERSION=$(grep -oP '"version":\s*"\K[^"]+' metadata.json | head -n 1)
-        - echo "$CRATE_NAME" > crate_name.txt
-        - echo "$CRATE_VERSION" > crate_version.txt
-    artifacts:
-        paths:
-            - crate_name.txt
-            - crate_version.txt
+  extends: .rust-linux-template
+  stage: build
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - when: never
+  script:
+    - cargo metadata --no-deps --format-version 1 > metadata.json
+    - CRATE_NAME=$(grep -oP '"name":\s*"\K[^"]+' metadata.json | head -n 1)
+    - CRATE_VERSION=$(grep -oP '"version":\s*"\K[^"]+' metadata.json | head -n 1)
+    - echo "CRATE_NAME=$CRATE_NAME" >> build.env
+    - echo "CRATE_VERSION=$CRATE_VERSION" >> build.env
+  artifacts:
+    reports:
+      dotenv: build.env
 
-build-binaries:
-    stage: build
-    rules:
-        - if: '$CI_PIPELINE_SOURCE == "web"'
-        - when: never
-    needs:
-        - parse-metadata
-    image: rust:latest
-    script:
-        - CRATE_NAME=$(cat crate_name.txt)
-        - CRATE_VERSION=$(cat crate_version.txt)
-        - |
-          TARGETS=(
-            "x86_64-apple-darwin"
-            "aarch64-apple-darwin"
-            "x86_64-unknown-linux-gnu"
-            "aarch64-unknown-linux-gnu"
-            "x86_64-pc-windows-msvc"
-          )
+build-linux-x86:
+  extends: .rust-linux-template
+  stage: build
+  needs:
+    - parse-metadata
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - when: never
+  script:
+    - cargo build --release
+  artifacts:
+    paths:
+      - target/release/$CRATE_NAME
+    expire_in: 1 day
 
-          mkdir dist
+build-windows-x86:
+  extends: .rust-windows-template
+  stage: build
+  needs:
+    - parse-metadata
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - when: never
+  script:
+    - cargo build --release
+  artifacts:
+    paths:
+      - target/release/$CRATE_NAME.exe
+    expire_in: 1 day
 
-          for TARGET in "${TARGETS[@]}"; do
-              rustup target add "$TARGET"
-              cargo build --release --target "$TARGET"
+build-macos-x86:
+  extends: .rust-macos-template
+  stage: build
+  needs:
+    - parse-metadata
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - when: never
+  script:
+    - cargo build --release
+  artifacts:
+    paths:
+      - target/release/$CRATE_NAME
+    expire_in: 1 day
 
-              if [[ "$TARGET" == *"windows"* ]]; then
-                  zip "dist/${CRATE_NAME}-${CRATE_VERSION}-${TARGET}.zip" \
-                      "target/${TARGET}/release/${CRATE_NAME}.exe"
-              else
-                  tar -czf "dist/${CRATE_NAME}-${CRATE_VERSION}-${TARGET}.tar.gz" \
-                      -C "target/${TARGET}/release" "${CRATE_NAME}"
-              fi
-          done
-    artifacts:
-        paths:
-            - dist/
-            - crate_name.txt
-            - crate_version.txt
+package-linux:
+  image: alpine:latest
+  stage: package
+  needs:
+    - parse-metadata
+    - build-linux-x86
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - when: never
+  before_script:
+    - apk add --no-cache tar gzip
+  script:
+    - mkdir -p dist
+    - tar -czf "dist/${CRATE_NAME}-${CRATE_VERSION}-x86_64-linux.tar.gz" -C target/release "$CRATE_NAME"
+  artifacts:
+    paths:
+      - dist/*.tar.gz
+    expire_in: 1 day
+
+package-windows:
+  image: alpine:latest
+  stage: package
+  needs:
+    - parse-metadata
+    - build-windows-x86
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - when: never
+  before_script:
+    - apk add --no-cache zip
+  script:
+    - mkdir -p dist
+    - cd target/release
+    - zip "../../dist/${CRATE_NAME}-${CRATE_VERSION}-x86_64-windows.zip" "${CRATE_NAME}.exe"
+  artifacts:
+    paths:
+      - dist/*.zip
+    expire_in: 1 day
+
+package-macos:
+  image: alpine:latest
+  stage: package
+  needs:
+    - parse-metadata
+    - build-macos-x86
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - when: never
+  before_script:
+    - apk add --no-cache tar gzip
+  script:
+    - mkdir -p dist
+    - tar -czf "dist/${CRATE_NAME}-${CRATE_VERSION}-x86_64-macos.tar.gz" -C target/release "$CRATE_NAME"
+  artifacts:
+    paths:
+      - dist/*.tar.gz
+    expire_in: 1 day
 
 create-release:
-    stage: release
-    rules:
-        - if: '$CI_PIPELINE_SOURCE == "web"'
-        - when: never
-    needs:
-        - build-binaries
-    script:
-        - CRATE_NAME=$(cat crate_name.txt)
-        - CRATE_VERSION=$(cat crate_version.txt)
-        - |
-          RELEASE_NOTES=$(cat release_notes.txt)
-          
-          PREV_VERSION=$(git tag --sort=-version:refname | grep -v "^v${CRATE_VERSION}$" | head -n 1)
-          
-          if [ -z "$PREV_VERSION" ]; then
-              PREV_VERSION=$(git rev-list --max-parents=0 HEAD)
-          fi
-          
-          FULL_DESCRIPTION="${RELEASE_NOTES}
+  image: alpine/git:latest
+  stage: release
+  needs:
+    - parse-metadata
+    - package-linux
+    - package-windows
+    - package-macos
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - when: never
+  before_script:
+    - apk add --no-cache curl jq
+  script:
+    - |
+      git config user.email "ci@gitlab.com"
+      git config user.name "GitLab CI"
+      git tag -a "v${CRATE_VERSION}" -m "Release v${CRATE_VERSION}"
+      git push https://oauth2:${GITLAB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git "v${CRATE_VERSION}"
+      
+      PREV_VERSION=$(git tag --sort=-version:refname | grep -v "^v${CRATE_VERSION}$" | head -n 1)
+      if [ -z "$PREV_VERSION" ]; then
+        PREV_VERSION=$(git rev-list --max-parents=0 HEAD)
+      fi
 
-          **Full Changelog**: ${CI_PROJECT_URL}/-/compare/${PREV_VERSION}...v${CRATE_VERSION}"
-          
-          ESCAPED_DESC=$(echo "$FULL_DESCRIPTION" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
-          
-          curl --request POST \
-            --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
-            --header "Content-Type: application/json" \
-            --data "{
-              \"name\": \"Release v${CRATE_VERSION}\",
-              \"tag_name\": \"v${CRATE_VERSION}\",
-              \"description\": \"${ESCAPED_DESC}\"
-            }" \
-            "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/releases"
+      RELEASE_NOTES=$(cat release_notes.txt)
+      CHANGELOG_LINK="${CI_PROJECT_URL}/-/compare/${PREV_VERSION}...v${CRATE_VERSION}"
+      DESCRIPTION="${RELEASE_NOTES}\n\n**Full Changelog**: ${CHANGELOG_LINK}"
+      
+      RELEASE_RESPONSE=$(curl --silent --request POST \
+        --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+        --header "Content-Type: application/json" \
+        --data "$(jq -n \
+          --arg name "Release v${CRATE_VERSION}" \
+          --arg tag "v${CRATE_VERSION}" \
+          --arg desc "$DESCRIPTION" \
+          '{name: $name, tag_name: $tag, description: $desc}')" \
+        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases")
 
-          for file in dist/*; do
-              BASENAME=$(basename "$file")
-              UPLOAD_RESPONSE=$(curl --request POST \
-                --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
-                --form "file=@${file}" \
-                "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/uploads")
-              
-              URL=$(echo "$UPLOAD_RESPONSE" | grep -oP '"url":\s*"\K[^"]+')
-
-              curl --request POST \
-                --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
-                --header "Content-Type: application/json" \
-                --data "{
-                  \"name\": \"${BASENAME}\",
-                  \"url\": \"${CI_PROJECT_URL}${URL}\"
-                }" \
-                "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/releases/v${CRATE_VERSION}/assets/links"
-          done
+      for file in dist/*; do
+        FILENAME=$(basename "$file")
+        echo "Uploading ${FILENAME}..."
+      
+        curl --request POST \
+          --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+          --form "file=@${file}" \
+          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/uploads" | \
+        jq -r '.full_path' | \
+        xargs -I {} curl --request POST \
+          --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+          --data "name=${FILENAME}" \
+          --data "url=${CI_PROJECT_URL}{}" \
+          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases/v${CRATE_VERSION}/assets/links"
+      done
