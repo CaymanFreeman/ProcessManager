@@ -167,11 +167,12 @@ prepare-release:
     - CHANGELOG="${CI_PROJECT_URL}/-/compare/${PREV_VERSION}...${TAG}"
     - NOTES="$(cat release_notes.md)"
     - |
-      DESCRIPTION="${NOTES}\n\n**Full Changelog**: ${CHANGELOG}"
-    - echo "DESCRIPTION=$DESCRIPTION" >> variables.env
+      echo "${NOTES}
+
+      **Full Changelog**: ${CHANGELOG}" > description.txt
   artifacts:
-    reports:
-      dotenv: variables.env
+    paths:
+      - description.txt
 
 create-release:
   image: alpine:latest
@@ -183,7 +184,7 @@ create-release:
     - echo "Creating release..."
   release:
     name: "Release v${CRATE_VERSION}"
-    description: "$DESCRIPTION"
+    description: description.txt
     tag_name: "v${CRATE_VERSION}"
     ref: "$CI_COMMIT_SHA"
     assets:
