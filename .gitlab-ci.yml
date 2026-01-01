@@ -156,7 +156,6 @@ create-release:
   needs:
     - prepare-release
     - parse-metadata
-    #- package-linux
   script:
     - DESCRIPTION=$(cat description.txt)
     - |
