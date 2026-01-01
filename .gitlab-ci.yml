@@ -114,9 +114,6 @@ package-linux:
   needs:
     - parse-metadata
     - build-linux-x86
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "web"'
-    - when: never
   before_script:
     - apk add --no-cache tar gzip
   script:
@@ -137,6 +134,8 @@ create-release:
     - apk add --no-cache git curl jq
   script:
     - |
+      set -x
+      
       TAG="v${CRATE_VERSION}"
       API="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}"
       REPO="${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
