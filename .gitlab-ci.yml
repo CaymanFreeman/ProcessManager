@@ -143,23 +143,30 @@ upload-packages:
       done
 
 prepare-release:
-  image: alpine/git:latest
+  image: alpine:latest
   stage: release
   needs:
     - parse-metadata
     - upload-packages
+  before_script:
+    - apk add --no-cache curl jq
   script:
     - export TAG="v${CRATE_VERSION}"
-    - PREV_VERSION=$(git tag --sort=-version:refname | grep -v "^${TAG}$" | head -n 1)
+    - |
+      PREV_VERSION=$(curl --silent \
+        --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+        "$CI_API_V4_URL/projects/$CI_PROJECT_ID/releases" \
+        | jq -r '.[1].tag_name // empty')
     - |
       if [ -z "$PREV_VERSION" ]; then
-        PREV_VERSION=$(git rev-list --max-parents=0 HEAD)
+        PREV_VERSION=$(curl --silent \
+          "$CI_API_V4_URL/projects/$CI_PROJECT_ID/repository/commits?per_page=1&order=asc" \
+          | jq -r '.[0].id')
       fi
     - CHANGELOG="${CI_PROJECT_URL}/-/compare/${PREV_VERSION}...${TAG}"
     - NOTES="$(cat release_notes.md)"
     - |
       DESCRIPTION="${NOTES}\n\n**Full Changelog**: ${CHANGELOG}"
-    - echo "TAG=$TAG" >> variables.env
     - echo "DESCRIPTION=$DESCRIPTION" >> variables.env
   artifacts:
     reports:
@@ -176,7 +183,7 @@ create-release:
   release:
     name: "Release v${CRATE_VERSION}"
     description: "$DESCRIPTION"
-    tag_name: "$TAG"
+    tag_name: "v${CRATE_VERSION}"
     ref: "$CI_COMMIT_SHA"
     assets:
       links:
