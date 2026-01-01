@@ -24,9 +24,9 @@ assets = [
 
 [package.metadata.generate-rpm]
 assets = [
-    { source = "target/release/process_manager", dest = "/usr/bin/process_manager", mode = "755" },
+    { source = "target/release/process_manager", dest = "/usr/bin/", mode = "755" },
     { source = "assets/icon.png", dest = "/usr/share/icons/hicolor/512x512/apps/process_manager.png", mode = "644" },
-    { source = "assets/process_manager.desktop", dest = "/usr/share/applications/process_manager.desktop", mode = "644" },
+    { source = "assets/process_manager.desktop", dest = "/usr/share/applications/", mode = "644" },
 ]
 
 [dependencies]
