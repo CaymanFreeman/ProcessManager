@@ -33,6 +33,7 @@ include:
 
 semgrep-sast:
   stage: test
+  allow_failure: false
   rules:
     - if: $CI_COMMIT_BRANCH
       exists:
@@ -42,9 +43,11 @@ semgrep-sast:
 
 secret_detection:
   stage: test
+  allow_failure: false
 
 gemnasium-dependency_scanning:
   stage: test
+  allow_failure: false
   rules:
     - exists:
         - Cargo.lock
