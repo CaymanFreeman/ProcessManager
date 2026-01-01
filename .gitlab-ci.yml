@@ -48,12 +48,12 @@ stages:
 #    - exists:
 #        - Cargo.lock
 #        - Cargo.toml
-#
-#.rust-linux-template:
-#  image: rust:slim
-#  before_script:
-#    - apt-get update && apt-get install -y libgtk-3-dev libxcb-shape0-dev libxcb-xfixes0-dev
-#
+
+.rust-linux-template:
+  image: rust:slim
+  before_script:
+    - apt-get update && apt-get install -y libgtk-3-dev libxcb-shape0-dev libxcb-xfixes0-dev
+
 #cargo-check:
 #  extends: .rust-linux-template
 #  stage: test
