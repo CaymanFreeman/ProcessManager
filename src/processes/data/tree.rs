@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 struct Node<'a> {
     process: &'a sysinfo::Process,
-    children: Vec<Node<'a>>,
+    children: Vec<Self>,
 }
 
 impl<'a> Node<'a> {
