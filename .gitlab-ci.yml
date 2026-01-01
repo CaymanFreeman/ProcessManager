@@ -169,6 +169,8 @@ create-release:
     - prepare-release
     - parse-metadata
     - package-linux
+  script:
+    - echo "Creating release..."
   release:
     name: "Release v${CRATE_VERSION}"
     description: "$DESCRIPTION"
