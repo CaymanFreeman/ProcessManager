@@ -63,8 +63,9 @@ parse-metadata:
         - if: '$CI_PIPELINE_SOURCE == "web"'
         - when: never
     script:
-        - CRATE_NAME=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].name')
-        - CRATE_VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
+        - cargo metadata --no-deps --format-version 1 > metadata.json
+        - CRATE_NAME=$(grep -oP '"name":\s*"\K[^"]+' metadata.json | head -n 1)
+        - CRATE_VERSION=$(grep -oP '"version":\s*"\K[^"]+' metadata.json | head -n 1)
         - echo "$CRATE_NAME" > crate_name.txt
         - echo "$CRATE_VERSION" > crate_version.txt
     artifacts:
@@ -135,23 +136,26 @@ create-release:
 
           **Full Changelog**: ${CI_PROJECT_URL}/-/compare/${PREV_VERSION}...v${CRATE_VERSION}"
           
+          ESCAPED_DESC=$(echo "$FULL_DESCRIPTION" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+          
           curl --request POST \
             --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
             --header "Content-Type: application/json" \
-            --data "$(jq -n \
-              --arg name "Release v${CRATE_VERSION}" \
-              --arg tag "v${CRATE_VERSION}" \
-              --arg desc "$FULL_DESCRIPTION" \
-              '{name: $name, tag_name: $tag, description: $desc}')" \
+            --data "{
+              \"name\": \"Release v${CRATE_VERSION}\",
+              \"tag_name\": \"v${CRATE_VERSION}\",
+              \"description\": \"${ESCAPED_DESC}\"
+            }" \
             "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/releases"
 
           for file in dist/*; do
               BASENAME=$(basename "$file")
-              URL=$(curl --request POST \
+              UPLOAD_RESPONSE=$(curl --request POST \
                 --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
                 --form "file=@${file}" \
-                "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/uploads" \
-                | jq -r '.url')
+                "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/uploads")
+              
+              URL=$(echo "$UPLOAD_RESPONSE" | grep -oP '"url":\s*"\K[^"]+')
 
               curl --request POST \
                 --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
