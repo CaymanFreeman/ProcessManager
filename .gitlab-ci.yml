@@ -128,54 +128,59 @@ package-linux:
     expire_in: 1 day
 
 create-release:
-  image: alpine/git:latest
+  image: alpine:latest
   stage: release
   needs:
     - parse-metadata
     - package-linux
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "web"'
-    - when: never
   before_script:
-    - apk add --no-cache curl jq
+    - apk add --no-cache git curl jq
   script:
     - |
+      TAG="v${CRATE_VERSION}"
+      API="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}"
+      REPO="${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
+      TOKEN_HEADER="PRIVATE-TOKEN: ${GITLAB_TOKEN}"
+
       git config user.email "ci@gitlab.com"
       git config user.name "GitLab CI"
-      git tag -a "v${CRATE_VERSION}" -m "Release v${CRATE_VERSION}"
-      git push https://oauth2:${GITLAB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git "v${CRATE_VERSION}"
-      
-      PREV_VERSION=$(git tag --sort=-version:refname | grep -v "^v${CRATE_VERSION}$" | head -n 1)
-      if [ -z "$PREV_VERSION" ]; then
-        PREV_VERSION=$(git rev-list --max-parents=0 HEAD)
-      fi
+      git tag -a "$TAG" -m "Release $TAG"
+      git push "https://oauth2:${GITLAB_TOKEN}@${REPO}" "$TAG"
 
-      RELEASE_NOTES=$(cat release_notes.txt)
-      CHANGELOG_LINK="${CI_PROJECT_URL}/-/compare/${PREV_VERSION}...v${CRATE_VERSION}"
-      DESCRIPTION="${RELEASE_NOTES}\n\n**Full Changelog**: ${CHANGELOG_LINK}"
-      
-      RELEASE_RESPONSE=$(curl --silent --request POST \
-        --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+      PREV_VERSION=$(git tag --sort=-version:refname \
+        | grep -v "^${TAG}$" \
+        | head -n 1)
+
+      [ -z "$PREV_VERSION" ] \
+        && PREV_VERSION=$(git rev-list --max-parents=0 HEAD)
+
+      NOTES=$(cat release_notes.txt)
+      CHANGELOG="${CI_PROJECT_URL}/-/compare/${PREV_VERSION}...${TAG}"
+      DESC="${NOTES}\n\n**Full Changelog**: ${CHANGELOG}"
+
+      curl --silent --request POST \
+        --header "$TOKEN_HEADER" \
         --header "Content-Type: application/json" \
         --data "$(jq -n \
-          --arg name "Release v${CRATE_VERSION}" \
-          --arg tag "v${CRATE_VERSION}" \
-          --arg desc "$DESCRIPTION" \
+          --arg name "Release $TAG" \
+          --arg tag "$TAG" \
+          --arg desc "$DESC" \
           '{name: $name, tag_name: $tag, description: $desc}')" \
-        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases")
+        "${API}/releases"
 
       for file in dist/*; do
-        FILENAME=$(basename "$file")
-        echo "Uploading ${FILENAME}..."
-      
-        curl --request POST \
-          --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+        NAME=$(basename "$file")
+        echo "Uploading $NAME..."
+
+        UPLOAD_PATH=$(curl --silent --request POST \
+          --header "$TOKEN_HEADER" \
           --form "file=@${file}" \
-          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/uploads" | \
-        jq -r '.full_path' | \
-        xargs -I {} curl --request POST \
-          --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
-          --data "name=${FILENAME}" \
-          --data "url=${CI_PROJECT_URL}{}" \
-          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases/v${CRATE_VERSION}/assets/links"
+          "${API}/uploads" \
+          | jq -r '.full_path')
+
+        curl --silent --request POST \
+          --header "$TOKEN_HEADER" \
+          --data "name=${NAME}" \
+          --data "url=${CI_PROJECT_URL}${UPLOAD_PATH}" \
+          "${API}/releases/${TAG}/assets/links"
       done
