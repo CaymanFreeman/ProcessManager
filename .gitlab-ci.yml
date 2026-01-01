@@ -41,13 +41,13 @@ stages:
     - rustup update stable
     - rustup default stable
 
-.rust-macos-template:
-  tags:
-    - saas-macos-medium-m1
-  image: macos-14-xcode-15
-  before_script:
-    - rustup update stable
-    - rustup default stable
+#.rust-macos-template:
+#  tags:
+#    - saas-macos-medium-m1
+#  image: macos-14-xcode-15
+#  before_script:
+#    - rustup update stable
+#    - rustup default stable
 
 show-versions:
   extends: .rust-linux-template
@@ -129,20 +129,20 @@ build-windows-x86:
       - target/release/$CRATE_NAME.exe
     expire_in: 1 day
 
-build-macos-x86:
-  extends: .rust-macos-template
-  stage: build
-  needs:
-    - parse-metadata
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "web"'
-    - when: never
-  script:
-    - cargo build --release
-  artifacts:
-    paths:
-      - target/release/$CRATE_NAME
-    expire_in: 1 day
+#build-macos-x86:
+#  extends: .rust-macos-template
+#  stage: build
+#  needs:
+#    - parse-metadata
+#  rules:
+#    - if: '$CI_PIPELINE_SOURCE == "web"'
+#    - when: never
+#  script:
+#    - cargo build --release
+#  artifacts:
+#    paths:
+#      - target/release/$CRATE_NAME
+#    expire_in: 1 day
 
 package-linux:
   image: alpine:latest
@@ -183,24 +183,24 @@ package-windows:
       - dist/*.zip
     expire_in: 1 day
 
-package-macos:
-  image: alpine:latest
-  stage: package
-  needs:
-    - parse-metadata
-    - build-macos-x86
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "web"'
-    - when: never
-  before_script:
-    - apk add --no-cache tar gzip
-  script:
-    - mkdir -p dist
-    - tar -czf "dist/${CRATE_NAME}-${CRATE_VERSION}-x86_64-macos.tar.gz" -C target/release "$CRATE_NAME"
-  artifacts:
-    paths:
-      - dist/*.tar.gz
-    expire_in: 1 day
+#package-macos:
+#  image: alpine:latest
+#  stage: package
+#  needs:
+#    - parse-metadata
+#    - build-macos-x86
+#  rules:
+#    - if: '$CI_PIPELINE_SOURCE == "web"'
+#    - when: never
+#  before_script:
+#    - apk add --no-cache tar gzip
+#  script:
+#    - mkdir -p dist
+#    - tar -czf "dist/${CRATE_NAME}-${CRATE_VERSION}-x86_64-macos.tar.gz" -C target/release "$CRATE_NAME"
+#  artifacts:
+#    paths:
+#      - dist/*.tar.gz
+#    expire_in: 1 day
 
 create-release:
   image: alpine/git:latest
@@ -209,7 +209,7 @@ create-release:
     - parse-metadata
     - package-linux
     - package-windows
-    - package-macos
+#    - package-macos
   rules:
     - if: '$CI_PIPELINE_SOURCE == "web"'
     - when: never
