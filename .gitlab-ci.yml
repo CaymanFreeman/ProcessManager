@@ -112,7 +112,6 @@ package-linux:
   image: alpine:latest
   stage: package
   needs:
-    - parse-metadata
     - build-linux-x86
   rules:
     - if: '$CI_PIPELINE_SOURCE == "web"'
@@ -131,7 +130,6 @@ create-release:
   image: alpine/git:latest
   stage: release
   needs:
-    - parse-metadata
     - package-linux
   rules:
     - if: '$CI_PIPELINE_SOURCE == "web"'
