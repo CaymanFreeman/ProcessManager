@@ -20,7 +20,7 @@ cache:
     - target/
 
 stages:
-  - verify
+  - test
   - build
   - package
   - release
@@ -31,7 +31,7 @@ include:
   - template: Jobs/Dependency-Scanning.gitlab-ci.yml
 
 semgrep-sast:
-  stage: verify
+  stage: test
   rules:
     - if: $CI_COMMIT_BRANCH
       exists:
@@ -40,10 +40,10 @@ semgrep-sast:
     SAST_EXCLUDED_PATHS: ".cargo/**"
 
 secret_detection:
-  stage: verify
+  stage: test
 
 gemnasium-dependency_scanning:
-  stage: verify
+  stage: test
   rules:
     - exists:
         - Cargo.lock
@@ -56,27 +56,27 @@ gemnasium-dependency_scanning:
 
 cargo-check:
   extends: .rust-linux-template
-  stage: verify
+  stage: test
   script:
     - cargo check --all-features --verbose --release
 
 cargo-fmt:
   extends: .rust-linux-template
-  stage: verify
+  stage: test
   script:
     - rustup component add rustfmt
     - cargo fmt --all -- --check
 
 cargo-clippy:
   extends: .rust-linux-template
-  stage: verify
+  stage: test
   script:
     - rustup component add clippy
     - cargo clippy --all-features --verbose --release
 
 cargo-test:
   extends: .rust-linux-template
-  stage: verify
+  stage: test
   script:
     - cargo test --workspace --all-features --verbose --release
 
