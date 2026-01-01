@@ -31,14 +31,24 @@ include:
   - template: Jobs/Secret-Detection.gitlab-ci.yml
   - template: Jobs/Dependency-Scanning.gitlab-ci.yml
 
-sast:
+semgrep-sast:
   stage: scan
+  rules:
+    - if: $CI_COMMIT_BRANCH
+      exists:
+        - "**/*.rs"
+  variables:
+    SAST_EXCLUDED_PATHS: ".cargo/**"
 
 secret_detection:
   stage: scan
 
 gemnasium-dependency_scanning:
   stage: scan
+  rules:
+    - exists:
+        - Cargo.lock
+        - Cargo.toml
 
 .rust-linux-template:
   image: rust:slim
