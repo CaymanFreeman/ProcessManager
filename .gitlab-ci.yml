@@ -12,6 +12,13 @@ variables:
     CARGO_TERM_COLOR: always
     RUSTFLAGS: "-D warnings"
     RUSTDOCFLAGS: "-D warnings"
+    CARGO_HOME: $CI_PROJECT_DIR/.cargo
+
+cache:
+    key: "${CI_COMMIT_REF_SLUG}"
+    paths:
+        - .cargo/
+        - target/
 
 stages:
     - debug
@@ -116,7 +123,7 @@ create-release:
         - CRATE_NAME=$(cat crate_name.txt)
         - CRATE_VERSION=$(cat crate_version.txt)
         - |
-          RELEASE_NOTES=$(cat release_notes.md)
+          RELEASE_NOTES=$(cat release_notes.txt)
           
           PREV_VERSION=$(git tag --sort=-version:refname | grep -v "^v${CRATE_VERSION}$" | head -n 1)
           
