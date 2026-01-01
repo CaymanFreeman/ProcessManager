@@ -121,16 +121,18 @@ package-linux-x86:
     - build-linux-x86
   before_script:
     - apt-get update && apt-get install -y dpkg-dev liblzma-dev
-    - cargo install cargo-deb
+    - cargo install cargo-deb cargo-generate-rpm
     - set -x
   script:
     - mkdir -p dist
     - tar -czf "dist/${CRATE_NAME}-${CRATE_VERSION}-x86_64-linux.tar.gz" -C target/release "$CRATE_NAME"
     - cargo deb --no-build --output "dist/${CRATE_NAME}-${CRATE_VERSION}-x86_64-linux.deb"
+    - cargo generate-rpm --output "dist/${CRATE_NAME}-${CRATE_VERSION}-x86_64.rpm"
   artifacts:
     paths:
       - dist/*.tar.gz
       - dist/*.deb
+      - dist/*.rpm
     expire_in: 1 day
 
 upload-packages:
@@ -142,6 +144,7 @@ upload-packages:
   script:
     - glab release upload "v${CRATE_VERSION}" "dist/${CRATE_NAME}-${CRATE_VERSION}-x86_64-linux.tar.gz#Linux (x86_64, tar.gz)#package"
     - glab release upload "v${CRATE_VERSION}" "dist/${CRATE_NAME}-${CRATE_VERSION}-x86_64-linux.deb#Linux (x86_64, deb)#package"
+    - glab release upload "v${CRATE_VERSION}" "dist/${CRATE_NAME}-${CRATE_VERSION}-x86_64-linux.rpm#Linux (x86_64, rpm)#package"
 
 create-release:
   image: registry.gitlab.com/gitlab-org/cli:latest
