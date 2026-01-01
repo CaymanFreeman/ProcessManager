@@ -236,7 +236,7 @@ package-windows:
 #    expire_in: 1 day
 
 create-release:
-  image: alpine/git:latest
+  image: alpine/latest
   stage: release
   needs:
     - parse-metadata
