@@ -183,9 +183,17 @@ create-release:
   script:
     - DESCRIPTION=$(cat description.txt)
     - LINUX_X86_TAR_GZ="${CI_PROJECT_URL}/-/packages/generic/${CRATE_NAME}/v${CRATE_VERSION}/${CRATE_NAME}-${CRATE_VERSION}-x86_64-linux.tar.gz"
-    - >
-      glab release create "v${CRATE_VERSION}"
-      --name "Release v${CRATE_VERSION}"
-      --notes "$DESCRIPTION"
-      --ref "$CI_COMMIT_SHA"
-      --asset-link "{\"name\":\"Linux (x86_64, tar.gz)\",\"url\":\"$LINUX_X86_TAR_GZ\"}"
+    - |
+      glab release create "v${CRATE_VERSION}" \
+        --name "Release v${CRATE_VERSION}" \
+        --notes "$DESCRIPTION" \
+        --ref "$CI_COMMIT_SHA" \
+        --assets-links='
+          [
+            {
+              "name": "Linux (x86_64, tar.gz)",
+              "url": "'"$LINUX_X86_TAR_GZ"'",
+              "link_type": "package",
+              "direct_asset_path": "'"${CRATE_NAME}-${CRATE_VERSION}-x86_64-linux.tar.gz"'"
+            }
+          ]'
