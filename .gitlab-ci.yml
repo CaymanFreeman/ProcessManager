@@ -164,7 +164,7 @@ prepare-release:
 
 create-release:
   stage: release
-  image: registry.gitlab.com/gitlab-org/cli:latest
+  image: alpine:latest
   needs:
     - prepare-release
     - parse-metadata
