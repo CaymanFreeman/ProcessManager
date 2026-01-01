@@ -116,14 +116,26 @@ create-release:
         - CRATE_NAME=$(cat crate_name.txt)
         - CRATE_VERSION=$(cat crate_version.txt)
         - |
+          RELEASE_NOTES=$(cat release_notes.md)
+          
+          PREV_VERSION=$(git tag --sort=-version:refname | grep -v "^v${CRATE_VERSION}$" | head -n 1)
+          
+          if [ -z "$PREV_VERSION" ]; then
+              PREV_VERSION=$(git rev-list --max-parents=0 HEAD)
+          fi
+          
+          FULL_DESCRIPTION="${RELEASE_NOTES}
+
+          **Full Changelog**: ${CI_PROJECT_URL}/-/compare/${PREV_VERSION}...v${CRATE_VERSION}"
+          
           curl --request POST \
             --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
             --header "Content-Type: application/json" \
-            --data "{
-              \"name\": \"Release v${CRATE_VERSION}\",
-              \"tag_name\": \"v${CRATE_VERSION}\",
-              \"description\": \"Automated release for ${CRATE_NAME} v${CRATE_VERSION}\"
-            }" \
+            --data "$(jq -n \
+              --arg name "Release v${CRATE_VERSION}" \
+              --arg tag "v${CRATE_VERSION}" \
+              --arg desc "$FULL_DESCRIPTION" \
+              '{name: $name, tag_name: $tag, description: $desc}')" \
             "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/releases"
 
           for file in dist/*; do
