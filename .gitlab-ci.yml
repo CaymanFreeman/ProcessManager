@@ -81,12 +81,13 @@ prepare-metadata:
     - echo "CRATE_VERSION=$CRATE_VERSION" >> variables.env
     - export TAG="v${CRATE_VERSION}"
     - git fetch --tags
-    - PREV_VERSION=$(git tag --sort=-version:refname | grep -v "^${TAG}$" | head -n 1)
+    - PREV_VERSION=$(git tag --sort=-version:refname | grep -v "^${TAG}$" | head -n 1 || true)
     - |
       if [ -z "$PREV_VERSION" ]; then
-        PREV_VERSION=$(git rev-list --max-parents=0 HEAD)
+        CHANGELOG="${CI_PROJECT_URL}/-/commits/${TAG}"
+      else
+        CHANGELOG="${CI_PROJECT_URL}/-/compare/${PREV_VERSION}...${TAG}"
       fi
-    - CHANGELOG="${CI_PROJECT_URL}/-/compare/${PREV_VERSION}...${TAG}"
     - NOTES="$(cat release_notes.md)"
     - |
       echo "${NOTES}
