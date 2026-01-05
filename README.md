@@ -16,7 +16,7 @@ information.
 
 ## Attributions
 
-- Icon via [Flaticon.com](https://www.flaticon.com/free-icon/cpu_4106583), HSL adjusted with (160, 100, 0)
+- Icon by [Smashicons](https://www.flaticon.com/free-icon/cpu_4106583), HSL adjusted with (160, 100, 0)
 - [egui](https://crates.io/crates/egui) - UI Library
 - [sysinfo](https://crates.io/crates/sysinfo) - Fetching system processes
 
