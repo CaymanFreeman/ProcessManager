@@ -1,5 +1,0 @@
-- Added column sorting for ID, Memory, CPU, Disk Read, and Disk Write
-- Added the ability to pause, play, and step the refreshing of processes
-- Added the ability to filter by user and path
-- Added a hierarchical view  to view processes starting from root (PID 1)
-- Changed the default column widths to be "best fit" for the data
